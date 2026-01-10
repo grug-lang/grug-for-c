@@ -1,1 +1,1 @@
-# grug-for-c
+# grug for C
