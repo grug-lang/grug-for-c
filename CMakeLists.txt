@@ -7,12 +7,15 @@ project(grug
     LANGUAGES C
 )
 
+set(GRUG_COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror" "-pedantic-errors" "-Wconversion" "-g" "-fsanitize=address,undefined")
+set(GRUG_LINK_OPTIONS "-fsanitize=address,undefined")
+
 add_library(grug src/grug.c)
 
 # Cmake be Cmake, and wants 90 instead of 89 to get ANSI 89 C.
 set_target_properties(grug PROPERTIES C_STANDARD 90)
-target_compile_options(grug PRIVATE -Wall -Wextra -Werror -pedantic-errors -Wconversion -g -fsanitize=address,undefined)
-target_link_options(grug PRIVATE -fsanitize=address,undefined)
+target_compile_options(grug PRIVATE ${GRUG_COMPILE_OPTIONS})
+target_link_options(grug PRIVATE ${GRUG_LINK_OPTIONS})
 target_include_directories(grug PUBLIC src)
 
 add_executable(test
@@ -20,6 +23,6 @@ add_executable(test
 )
 
 set_target_properties(test PROPERTIES C_STANDARD 90)
-target_compile_options(test PRIVATE -Wall -Wextra -Werror -pedantic-errors -Wconversion -g -fsanitize=address,undefined)
-target_link_options(test PRIVATE -fsanitize=address,undefined)
+target_compile_options(test PRIVATE ${GRUG_COMPILE_OPTIONS})
+target_link_options(test PRIVATE ${GRUG_LINK_OPTIONS})
 target_link_libraries(test PRIVATE grug)
