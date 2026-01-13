@@ -9,12 +9,15 @@ See the `examples/` directory for usage examples, `test/` for how testing is don
 
 main.c
 ```C
-#include "grug.h"
+#include <stdio.h>
+#include <inttypes.h>
+
+#include <grug.h>
 
 // Game fns get direct access to the grug state / context from which they are called
 // For example, in a system with co-routines, each fiber may have its own grug state.
-void game_fn_print_string(grug_state* gst, GRUG_ID me_caller, union grug_value *args) {
-    printf("Entity %d said %s\n", me_caller, GRUG_GET_STRING(gst, args, 0));
+void game_fn_print_string(struct grug_state* gst, GRUG_ID me_caller, union grug_value *args) {
+    printf("Entity" PRIu64 " said %s\n", me_caller, GRUG_GET_STRING(gst, args, 0));
 }
 
 int main(void) {
@@ -37,11 +40,11 @@ int main(void) {
     GRUG_FILE_ID labrador_script = grug_get_script(&gst, "animals/labrador-Dog.grug");
 
     // The initialization of globals might call game fns, so beware that creating an entity may call game fns
-    GRUG_ID dog1 = grug_create_entity(&gst, &labrador_script, dog1_me);
-    GRUG_CALL_ARGLESS_VOID(&gst, dog1_me, on_spawn_fn_id);
+    GRUG_ID dog1 = grug_create_entity(&gst, &labrador_script);
+    GRUG_CALL_ARGLESS_VOID(&gst, dog1, on_spawn_fn_id);
     
     GRUG_ID dog2 = grug_create_entity(&gst, &labrador_script, dog2_me);
-    GRUG_CALL_ARGLESS_VOID(&gst, dog2_me, on_spawn_fn_id);
+    GRUG_CALL_ARGLESS_VOID(&gst, dog2, on_spawn_fn_id);
     
     while(true) {
         // This reloads any script and resource changes, recompiling files if nessesary
@@ -50,8 +53,8 @@ int main(void) {
         grug_update(&gst);
         // Although you can ask grug about everything that updated if needed, in apis similar to this
         if(grug_script_was_updated(&gst, labrador_script)) {
-            GRUG_CALL_VOID(&gst, dog1_me, on_bark_fn_id, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
-            GRUG_CALL_VOID(&gst, dog2_me, on_bark_fn_id, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+            GRUG_CALL_VOID(&gst, dog1, on_bark_fn_id, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
+            GRUG_CALL_VOID(&gst, dog2, on_bark_fn_id, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
         }
     }
 
