@@ -66,5 +66,5 @@ int main(void) {
     grug_deinit(gst);
 
     free(dog1_members);
-    free(dog1_members);
+    free(dog2_members);
 }
