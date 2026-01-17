@@ -77,7 +77,6 @@ int main(void) {
     // scripts and entities can be destroyed individually of course
     grug_deinit(gst);
 }
-}
 ```
 
 animals/labrador-Dog.grug
