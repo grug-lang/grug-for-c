@@ -73,9 +73,11 @@ int main(void) {
         }
     }
 
-    // Technically unreachable (oops) but this will also clean up all the entities and scripts
-    // scripts and entities can be destroyed individually of course
+    // Technically unreachable (oops) but this will also clean up all the scripts
     grug_deinit(gst);
+
+    free(dog1_members);
+    free(dog1_members);
 }
 ```
 

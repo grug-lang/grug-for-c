@@ -45,7 +45,7 @@ int main(void) {
     GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, dog2, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
 
     while(true) {
-        // This reloads any script and resource changes, recompiling files if nessesary
+        // This reloads any script and resource changes, recompiling files if necessary
         // Since you got IDs instead of the actual structures, grug can update things behind the scenes
         grug_update(gst);
         // but you'll need to make sure to _absolutely never ever forget ever_ to realloc and reinit the globals for all the entities whose script changed
@@ -62,7 +62,9 @@ int main(void) {
         }
     }
 
-    // Technically unreachable (oops) but this will also clean up all the entities and scripts
-    // scripts and entities can be destroyed individually of course
+    // Technically unreachable (oops) but this will also clean up all the scripts
     grug_deinit(gst);
+
+    free(dog1_members);
+    free(dog1_members);
 }
