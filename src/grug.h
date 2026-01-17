@@ -42,6 +42,8 @@
 // File id points to a specific script file, not an entity or object
 typedef GRUG_ID GRUG_FILE_ID;
 
+typedef GRUG_ID GRUG_ENTITY_ID;
+
 union grug_value {
     #ifndef GRUG_NO_NUMBER
         GRUG_NUMBER _number;
@@ -100,12 +102,15 @@ struct grug_init_settings {
 
 // SECTION: functions
 
-struct grug_state grug_init(struct grug_init_settings settings);
+struct grug_init_settings grug_default_settings(void);
 
-void grug_register_game_fn_void_argless(struct grug_state* me, game_fn_void_argless fn);
-void grug_register_game_fn_value_argless(struct grug_state* me, game_fn_value_argless fn);
-void grug_register_game_fn_void(struct grug_state* me, game_fn_void fn);
-void grug_register_game_fn_value(struct grug_state* me, game_fn_value fn);
+struct grug_state* grug_init(struct grug_init_settings settings);
+
+
+void grug_register_game_fn_void_argless(struct grug_state* me, char const* game_fn_name, game_fn_void_argless fn);
+void grug_register_game_fn_value_argless(struct grug_state* me, char const* game_fn_name, game_fn_value_argless fn);
+void grug_register_game_fn_void(struct grug_state* me, char const* game_fn_name, game_fn_void fn);
+void grug_register_game_fn_value(struct grug_state* me, char const* game_fn_name, game_fn_value fn);
 
 GRUG_ON_FN_ID grug_get_fn_id(struct grug_state* me, char const* type, char const* on_fn_name);
 
@@ -113,12 +118,22 @@ void just_making_sure_tests_can_call_this(void);
 
 GRUG_FILE_ID grug_get_script(struct grug_state* me, char const* script_name);
 
-GRUG_ID grug_create_entity(struct grug_state* me, GRUG_FILE_ID script);
+size_t grug_members_size(struct grug_state* me, GRUG_FILE_ID script);
 
+// No need to store me_id in the members, the game manages that for us, but the script might call a game fn that uses me so provide it anyways
+void grug_init_members(struct grug_state* me, GRUG_FILE_ID script, void* members, GRUG_ID entity_me_id);
+
+// When the game calls update(), it needs to go through and explicitly realloc and call init_members on all the affected entities
 void grug_update(struct grug_state* me);
 
 bool grug_script_was_updated(struct grug_state* me, GRUG_FILE_ID script);
 
 void grug_deinit(struct grug_state* me);
+
+// TODO MARK: TODO
+#define GRUG_GET_STRING(_state, _args, _index) ((void)(_state), (void)(_args), (void)(_index), (char const*)(0))
+#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _members, _entity) ((void)(_state), (void)(_entity), (void)(_fn_id), 0)
+#define GRUG_CALL_VOID(_state, _fn_id, _members, _entity, _args) ((void)(_state), (void)(_entity), (void)(_fn_id), (void)(_args), 0)
+#define GRUG_ARGS(...) 0
 
 #endif //GRUG_HEADER_H
