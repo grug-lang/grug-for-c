@@ -106,7 +106,6 @@ struct grug_init_settings grug_default_settings(void);
 
 struct grug_state* grug_init(struct grug_init_settings settings);
 
-
 void grug_register_game_fn_void_argless(struct grug_state* me, char const* game_fn_name, game_fn_void_argless fn);
 void grug_register_game_fn_value_argless(struct grug_state* me, char const* game_fn_name, game_fn_value_argless fn);
 void grug_register_game_fn_void(struct grug_state* me, char const* game_fn_name, game_fn_void fn);

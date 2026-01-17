@@ -41,10 +41,13 @@ int main(void) {
     // your file object is simple a handle to the script, and isn't the script itself 
     GRUG_FILE_ID labrador_script = grug_get_script(gst, "animals/labrador-Dog.grug");
 
+    // this is the object / entity ID of the dog
     GRUG_ID dog1 = 1;
+    // Create space for the script to store its member variables
     void* dog1_members = malloc(grug_members_size(gst, labrador_script));
     // The initialization of members might call game fns, so beware that creating an entity may call game fns
     grug_init_members(gst, labrador_script, dog1_members, dog1);
+    // tell this dog that it has spawned into the world
     GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_members, dog1);
     
     GRUG_ID dog2 = 2;
@@ -61,6 +64,7 @@ int main(void) {
         grug_update(gst);
         // but you'll need to make sure to _absolutely never ever forget ever_ to realloc and reinit the globals for all the entities whose script changed
         if(grug_script_was_updated(gst, labrador_script)) {
+            // Old members are non-applicable to the new script, members may have been added/removed
             free(dog1_members);
             dog1_members = malloc(grug_members_size(gst, labrador_script));
             grug_init_members(gst, labrador_script, dog1_members, dog1);
