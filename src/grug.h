@@ -134,11 +134,31 @@ bool grug_script_was_updated(struct grug_state* gst, GRUG_FILE_ID script);
 void grug_deinit(struct grug_state* gst);
 
 
-// TODO MARK: TODO
-#define GRUG_GET_STRING(_state, _args, _index) ((void)(_state), (void)(_args), (void)(_index), (char const*)(0))
-#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _members) ((void)(_state), (void)(_members), (void)(_fn_id), 0)
-#define GRUG_CALL_VOID(_state, _fn_id, _members, _args) ((void)(_state), (void)(_members), (void)(_fn_id), (void)(_args), 0)
+void backend_call_argless(struct grug_state* gst, GRUG_ON_FN_ID fn, void* members);
+void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, void* members, union grug_value args[]);
+
+// This only exists as a hack to satisfy the compiler, it shall be removed shortly
+void voidfn(int z, ...)
+#define voidmac(...) voidfn(0, __VA_ARGS__)
+
+
+#define GRUG_GET_STRING(_state, _args, _index) (voidmac(_state), voidmac(_args), voidmac(_index), (char const*)(1))
+
+#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _members) (voidmac(_state), voidmac(_members), voidmac(_fn_id))
+#define GRUG_CALL_VOID(_state, _fn_id, _members, _args) (voidmac(_state), voidmac(_members), voidmac(_fn_id), voidmac(_args))
 #define GRUG_ARGS(...) 0
+
+// TODO MARK: TODO
+#ifdef GRUG_NO_CHECKS
+
+#define GRUG_GET_ARG(_args, _index, _type) _args[_index]._##_type
+
+#else
+
+#define GRUG_GET_ARG(_args, _index, _type) (grug_check_type(__func__, _index, grug_type_##_type), _args[_index]._##_type)
+
+#endif
+
 
 #ifdef __cplusplus
 }
