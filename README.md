@@ -46,17 +46,18 @@ int main(void) {
     // Create space for the script to store its member variables
     void* dog1_members = malloc(grug_members_size(gst, labrador_script));
     // The initialization of members might call game fns, so beware that creating an entity may call game fns
+    // the id (dog1 in this case) is stored in the members
     grug_init_members(gst, labrador_script, dog1_members, dog1);
     // tell this dog that it has spawned into the world
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_members, dog1);
+    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_members);
     
     GRUG_ID dog2 = 2;
     void* dog2_members = malloc(grug_members_size(gst, labrador_script));
     grug_init_members(gst, labrador_script, dog2_members, dog2);
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_members, dog2);
+    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_members);
     
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, dog1, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, dog2, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+    GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
+    GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
 
     while(true) {
         // This reloads any script and resource changes, recompiling files if necessary
@@ -68,12 +69,12 @@ int main(void) {
             free(dog1_members);
             dog1_members = malloc(grug_members_size(gst, labrador_script));
             grug_init_members(gst, labrador_script, dog1_members, dog1);
-            GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, dog1, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
+            GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
 
             free(dog2_members);
             dog2_members = malloc(grug_members_size(gst, labrador_script));
             grug_init_members(gst, labrador_script, dog2_members, dog2);
-            GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, dog2, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+            GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
         }
     }
 
