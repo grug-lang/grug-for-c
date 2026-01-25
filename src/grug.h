@@ -47,7 +47,7 @@ extern "C" {
 typedef GRUG_ID GRUG_FILE_ID;
 
 // TODO: maybe devs want entity id to be different from the regular id?
-// Entity id points to a specific script file, not an entity or object
+// Entity id points to a specific entity, not an object
 typedef GRUG_ID GRUG_ENTITY_ID;
 
 union grug_value {
@@ -74,9 +74,12 @@ enum grug_type_enum {
 
 typedef uint32_t grug_type;
 
-struct grug_state {
-    int TODO;
+struct grug_value_typed {
+    grug_type type;
+    union grug_value value;
 };
+
+struct grug_state;
 
 typedef void (*game_fn_void)(struct grug_state* gst, GRUG_ID me, const union grug_value[]);
 typedef void (*game_fn_void_argless)(struct grug_state* gst, GRUG_ID me);
@@ -126,6 +129,8 @@ GRUG_FILE_ID grug_get_script(struct grug_state* gst, char const* script_name);
 
 GRUG_ENTITY_ID grug_create_entity(struct grug_state* gst, GRUG_FILE_ID script, GRUG_ID id);
 
+void grug_deinit_entity(struct grug_state* gst, GRUG_ENTITY_ID entity);
+
 void grug_update(struct grug_state* gst);
 
 size_t grug_num_updates(struct grug_state* gst);
@@ -135,7 +140,8 @@ GRUG_FILE_ID grug_update_file(struct grug_state* gst, size_t update_index);
 void grug_deinit(struct grug_state* gst);
 
 void backend_call_argless(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity);
-void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity, union grug_value args[]);
+void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity, const union grug_value args[]);
+void backend_call_typed(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity, const struct grug_value_typed args[]);
 
 void grug_check_type(struct grug_state* gst, char const* game_fn, size_t index, grug_type type);
 
@@ -144,19 +150,44 @@ void grug_check_type(struct grug_state* gst, char const* game_fn, size_t index, 
 #define GRUG_GET_NUMBER(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, number)
 #define GRUG_GET_ID(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, id)
 
+// Can already check args since it just has to assert the function takes no args
 #define GRUG_CALL_ARGLESS(_state, _on_fn, _entity) backend_call_argless(_state, _on_fn, _entity)
-// TODO MARK: TODO
 #ifdef GRUG_NO_CHECKS
 
 #define GRUG_GET_ARG(_args, _index, _type) _args[_index]._##_type
-#define GRUG_CALL(_state, _on_fn, _entity, ...) 
+#define GRUG_CALL(_state, _on_fn, _entity, ...) \
+    do { \
+        const union grug_value _grug_args[] = {__VA_ARGS__}; \
+        grug_backend_call(_state, _on_fn, _entity, _grug_args); \
+    } while(0);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+static inline union grug_value GRUG_ARG_NUMBER(GRUG_NUMBER v) { union grug_value r; r._number = v; return r; }
+static inline union grug_value GRUG_ARG_BOOL(GRUG_BOOL v) { union grug_value r; r._bool = v; return r; }
+static inline union grug_value GRUG_ARG_STRING(GRUG_STRING v) { union grug_value r; r._string = v; return r; }
+static inline union grug_value GRUG_ARG_ID(GRUG_ID v) { union grug_value r; r._id = v; return r; }
+#pragma GCC diagnostic pop
 
 #else
 
 #define GRUG_GET_ARG(_state, _args, _index, _type) (grug_check_type(_state, __func__, _index, grug_type_##_type), _args[_index]._##_type)
 
-#endif
+#define GRUG_CALL(_state, _on_fn, _entity, ...) \
+    do { \
+        const struct grug_value_typed _grug_args[] = {__VA_ARGS__}; \
+        backend_call_typed(_state, _on_fn, _entity, _grug_args); \
+    } while(0);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+static inline struct grug_value_typed GRUG_ARG_NUMBER(GRUG_NUMBER v) { struct grug_value_typed r; r.value._number = v; r.type = grug_type_number; return r; }
+static inline struct grug_value_typed GRUG_ARG_BOOL(GRUG_BOOL v) { struct grug_value_typed r; r.value._bool = v; r.type = grug_type_bool; return r; }
+static inline struct grug_value_typed GRUG_ARG_STRING(GRUG_STRING v) { struct grug_value_typed r; r.value._string = v; r.type = grug_type_string; return r; }
+static inline struct grug_value_typed GRUG_ARG_ID(GRUG_ID v) { struct grug_value_typed r; r.value._id = v; r.type = grug_type_id; return r; }
+#pragma GCC diagnostic pop
+
+#endif
 
 #ifdef __cplusplus
 }
