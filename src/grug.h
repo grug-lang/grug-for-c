@@ -20,6 +20,7 @@ extern "C" {
 // - GRUG_ID: the type to use for ids, uint64_t if undefined
 // - GRUG_NO_ID: define this if you don't want / can't have ids, note that GRUG_ID still applies for instances of scripts
 // - GRUG_ON_FN_ID: the type to use for on_fn ids, uint64_t if undefined
+// - GRUG_NO_CHECKS: when defined, grug is put into no-check mode which does no type checking on arguments
 
 
 #ifndef GRUG_NUMBER
