@@ -95,15 +95,28 @@ on_bark(sound: string) {
 ```
 
 ## API feature requirements
-- round-trip grug file -> tokens -> json -> tokens - > grug file
-- unwinding the grug stack
-- error handling, for compile-time, runtime, and game errors
-- safe mode v.s fast mode
-- 
+- round-trip grug file -> tokens -> json -> tokens - > grug file,
+- unwinding the grug stack,
+- error handling, for compile-time, runtime, and game errors,
+- safe mode v.s fast mode,
+- switching out the backend at runtime,
+- getting the id and script of an entity from the script handle
+- when a script fails to compile
+- when a script doesn't have an on fn that the game tries to get and call
+- replace the grug_get_script and grug_get_on_fn with grug_get_mods() that returns a struct with the folder structure of the mods
 
 
+## options
 
-
-
+Here are your options as someone compiling grug:
+- GRUG_NUMBER: the type to use for numbers, double if undefined
+- GRUG_NO_NUMBER: define this if you don't want / can't have numbers
+- GRUG_BOOL: the type to use for booleans, bool if undefined
+- GRUG_NO_BOOL: define this if you don't want / can't have bools
+- GRUG_STRING: the type to use for strings, char const* if undefined
+- GRUG_NO_STRING: define this if you don't want / can't have strings
+- GRUG_ID: the type to use for ids, uint64_t if undefined
+- GRUG_NO_ID: define this if you don't want / can't have ids, note that GRUG_ID still applies for instances of scripts
+ - GRUG_ON_FN_ID: the type to use for on_fn ids, uint64_t if undefined
 
 

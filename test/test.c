@@ -5,9 +5,9 @@
 
 // Game fns get direct access to the grug state / context from which they are called
 // For example, in a system with co-routines, each fiber may have its own grug state.
-void game_fn_print_string(struct grug_state* gst, GRUG_ID me_caller, const union grug_value args[]) {
+void game_fn_print_string(struct grug_state* gst, grug_id me_caller, const union grug_value args[]) {
     (void)gst;
-    printf("Entity %" PRIu64 " said %s\n", me_caller, GRUG_GET_STRING(gst, args, 0));
+    printf("Entity %" PRIu64 " said %s\n", me_caller, args[0]._string);
 }
 
 int main(void) {
@@ -22,22 +22,22 @@ int main(void) {
 
     // Grab the "ID" of the Dog::on_spawn and Dog::on_bark functions
     // This is not a normal grug object id, but a special function id
-    GRUG_ON_FN_ID on_spawn_fn_id = grug_get_fn_id(gst, "Dog", "on_spawn");
-    GRUG_ON_FN_ID on_bark_fn_id = grug_get_fn_id(gst, "Dog", "on_bark");
+    grug_on_fn_id on_spawn_fn_id = grug_get_fn_id(gst, "Dog", "on_spawn");
+    grug_on_fn_id on_bark_fn_id = grug_get_fn_id(gst, "Dog", "on_bark");
 
     // your file object is simple a handle to the script, and isn't the script itself 
-    GRUG_FILE_ID labrador_script = grug_get_script(gst, "animals/labrador-Dog.grug");
+    grug_file_id labrador_script = grug_get_script(gst, "animals/labrador-Dog.grug");
 
     // this is the object / entity ID of the dog
-    GRUG_ID dog1 = 1;
+    grug_id dog1 = 1;
     // The initialization of members might call game fns, so beware that creating an entity may call game fns
     // grug holds on to the id (dog1) so don't change it without re-creating the entity too.
-    GRUG_ENTITY_ID dog1_entity = grug_create_entity(gst, labrador_script, dog1);
+    grug_entity_id dog1_entity = grug_create_entity(gst, labrador_script, dog1);
     // tell this dog that it has spawned into the world
     GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog1_entity);
     
-    GRUG_ID dog2 = 2;
-    GRUG_ENTITY_ID dog2_entity = grug_create_entity(gst, labrador_script, dog2);
+    grug_id dog2 = 2;
+    grug_entity_id dog2_entity = grug_create_entity(gst, labrador_script, dog2);
     GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog2_entity);
     
     GRUG_CALL(gst, on_bark_fn_id, dog1_entity, GRUG_ARG_STRING("Woof"));
@@ -47,13 +47,10 @@ int main(void) {
         // This reloads any script and resource changes, recompiling files if necessary
         // Since you got IDs instead of the actual structures, grug can update things behind the scenes
         // Note that this also re-inits entity members which may call game fns
-        grug_update(gst);
+        struct grug_updates_list updates = grug_update(gst);
 
-        // Most games will want to know what scripts got updated
-        size_t num_updates = grug_num_updates(gst);
-
-        for(size_t i=0; i<num_updates; ++i) {
-            GRUG_FILE_ID updated_file = grug_update_file(gst, i);
+        for(size_t i=0; i<updates.count; ++i) {
+            grug_file_id updated_file = updates.updates[i].file;
             if(updated_file == labrador_script) {
                 // re-call on_spawn - since the members get reset upon reload.
                 GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog1_entity);
