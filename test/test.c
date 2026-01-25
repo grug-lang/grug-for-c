@@ -34,14 +34,14 @@ int main(void) {
     // grug holds on to the id (dog1) so don't change it without re-creating the entity too.
     GRUG_ENTITY_ID dog1_entity = grug_create_entity(gst, labrador_script, dog1);
     // tell this dog that it has spawned into the world
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_entity);
+    GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog1_entity);
     
     GRUG_ID dog2 = 2;
     GRUG_ENTITY_ID dog2_entity = grug_create_entity(gst, labrador_script, dog2);
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_entity);
+    GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog2_entity);
     
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_entity, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_entity, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+    GRUG_CALL(gst, on_bark_fn_id, dog1_entity, GRUG_ARG_STRING("Woof"));
+    GRUG_CALL(gst, on_bark_fn_id, dog2_entity, GRUG_ARG_STRING("Arf"));
 
     while(true) {
         // This reloads any script and resource changes, recompiling files if necessary
@@ -56,12 +56,12 @@ int main(void) {
             GRUG_FILE_ID updated_file = grug_update_file(gst, i);
             if(updated_file == labrador_script) {
                 // re-call on_spawn - since the members get reset upon reload.
-                GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_entity);
-                GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_entity);
+                GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog1_entity);
+                GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog2_entity);
                 
                 // call these functions again for demonstration
-                GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_entity, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
-                GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_entity, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+                GRUG_CALL(gst, on_bark_fn_id, dog1_entity, GRUG_ARG_STRING("Woof"));
+                GRUG_CALL(gst, on_bark_fn_id, dog2_entity, GRUG_ARG_STRING("Arf"));
             }
         }
     }

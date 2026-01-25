@@ -46,6 +46,8 @@ extern "C" {
 // File id points to a specific script file, not an entity or object
 typedef GRUG_ID GRUG_FILE_ID;
 
+// TODO: maybe devs want entity id to be different from the regular id?
+// Entity id points to a specific script file, not an entity or object
 typedef GRUG_ID GRUG_ENTITY_ID;
 
 union grug_value {
@@ -63,14 +65,15 @@ union grug_value {
     #endif
 };
 
-enum grug_type {
+enum grug_type_enum {
     grug_type_number,
     grug_type_bool,
     grug_type_string,
     grug_type_id,
 };
 
-// TODO: should this really be transparent? (do we let the user allocate the struct and inspect its members?)
+typedef uint32_t grug_type;
+
 struct grug_state {
     int TODO;
 };
@@ -134,25 +137,23 @@ void grug_deinit(struct grug_state* gst);
 void backend_call_argless(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity);
 void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity, union grug_value args[]);
 
-// This only exists as a hack to satisfy the compiler, it shall be removed shortly
-void voidfn(int z, ...);
-#define voidmac(...) voidfn(0, __VA_ARGS__)
+void grug_check_type(struct grug_state* gst, char const* game_fn, size_t index, grug_type type);
 
+#define GRUG_GET_STRING(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, string)
+#define GRUG_GET_BOOL(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, bool)
+#define GRUG_GET_NUMBER(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, number)
+#define GRUG_GET_ID(_state, _args, _index) GRUG_GET_ARG(_state, _args, _index, id)
 
-#define GRUG_GET_STRING(_state, _args, _index) (voidmac(_state), voidmac(_args), voidmac(_index), (char const*)(1))
-
-#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _entity) (voidmac(_state), voidmac(_entity), voidmac(_fn_id))
-#define GRUG_CALL_VOID(_state, _fn_id, _entity, _args) (voidmac(_state), voidmac(_entity), voidmac(_fn_id), voidmac(_args))
-#define GRUG_ARGS(...) 0
-
+#define GRUG_CALL_ARGLESS(_state, _on_fn, _entity) backend_call_argless(_state, _on_fn, _entity)
 // TODO MARK: TODO
 #ifdef GRUG_NO_CHECKS
 
 #define GRUG_GET_ARG(_args, _index, _type) _args[_index]._##_type
+#define GRUG_CALL(_state, _on_fn, _entity, ...) 
 
 #else
 
-#define GRUG_GET_ARG(_args, _index, _type) (grug_check_type(__func__, _index, grug_type_##_type), _args[_index]._##_type)
+#define GRUG_GET_ARG(_state, _args, _index, _type) (grug_check_type(_state, __func__, _index, grug_type_##_type), _args[_index]._##_type)
 
 #endif
 
