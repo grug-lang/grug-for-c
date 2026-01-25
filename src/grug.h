@@ -121,31 +121,28 @@ void just_making_sure_tests_can_call_this(void);
 
 GRUG_FILE_ID grug_get_script(struct grug_state* gst, char const* script_name);
 
-size_t grug_members_size(struct grug_state* gst, GRUG_FILE_ID script);
+GRUG_ENTITY_ID grug_create_entity(struct grug_state* gst, GRUG_FILE_ID script, GRUG_ID id);
 
-// grug stores the entity id in the members. An entities me is intrinsically tied to its members, and vice-versa.
-void grug_init_members(struct grug_state* gst, GRUG_FILE_ID script, void* members, GRUG_ID entity_me_id);
-
-// When the game calls update(), it needs to go through and explicitly realloc and call init_members on all the affected entities
 void grug_update(struct grug_state* gst);
 
-bool grug_script_was_updated(struct grug_state* gst, GRUG_FILE_ID script);
+size_t grug_num_updates(struct grug_state* gst);
+
+GRUG_FILE_ID grug_update_file(struct grug_state* gst, size_t update_index);
 
 void grug_deinit(struct grug_state* gst);
 
-
-void backend_call_argless(struct grug_state* gst, GRUG_ON_FN_ID fn, void* members);
-void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, void* members, union grug_value args[]);
+void backend_call_argless(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity);
+void backend_call(struct grug_state* gst, GRUG_ON_FN_ID fn, GRUG_ENTITY_ID entity, union grug_value args[]);
 
 // This only exists as a hack to satisfy the compiler, it shall be removed shortly
-void voidfn(int z, ...)
+void voidfn(int z, ...);
 #define voidmac(...) voidfn(0, __VA_ARGS__)
 
 
 #define GRUG_GET_STRING(_state, _args, _index) (voidmac(_state), voidmac(_args), voidmac(_index), (char const*)(1))
 
-#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _members) (voidmac(_state), voidmac(_members), voidmac(_fn_id))
-#define GRUG_CALL_VOID(_state, _fn_id, _members, _args) (voidmac(_state), voidmac(_members), voidmac(_fn_id), voidmac(_args))
+#define GRUG_CALL_ARGLESS_VOID(_state, _fn_id, _entity) (voidmac(_state), voidmac(_entity), voidmac(_fn_id))
+#define GRUG_CALL_VOID(_state, _fn_id, _entity, _args) (voidmac(_state), voidmac(_entity), voidmac(_fn_id), voidmac(_args))
 #define GRUG_ARGS(...) 0
 
 // TODO MARK: TODO

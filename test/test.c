@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <inttypes.h>
-#include <stdlib.h>
 
 #include <grug.h>
 
@@ -26,50 +25,47 @@ int main(void) {
     GRUG_ON_FN_ID on_spawn_fn_id = grug_get_fn_id(gst, "Dog", "on_spawn");
     GRUG_ON_FN_ID on_bark_fn_id = grug_get_fn_id(gst, "Dog", "on_bark");
 
-    // Get access to the script in question.
     // your file object is simple a handle to the script, and isn't the script itself 
     GRUG_FILE_ID labrador_script = grug_get_script(gst, "animals/labrador-Dog.grug");
 
     // this is the object / entity ID of the dog
     GRUG_ID dog1 = 1;
-    // Create space for the script to store its member variables
-    void* dog1_members = malloc(grug_members_size(gst, labrador_script));
     // The initialization of members might call game fns, so beware that creating an entity may call game fns
-    // the id (dog1 in this case) is stored in the members
-    grug_init_members(gst, labrador_script, dog1_members, dog1);
+    // grug holds on to the id (dog1) so don't change it without re-creating the entity too.
+    GRUG_ENTITY_ID dog1_entity = grug_create_entity(gst, labrador_script, dog1);
     // tell this dog that it has spawned into the world
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_members);
+    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_entity);
     
     GRUG_ID dog2 = 2;
-    void* dog2_members = malloc(grug_members_size(gst, labrador_script));
-    grug_init_members(gst, labrador_script, dog2_members, dog2);
-    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_members);
+    GRUG_ENTITY_ID dog2_entity = grug_create_entity(gst, labrador_script, dog2);
+    GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_entity);
     
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
-    GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+    GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_entity, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
+    GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_entity, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
 
     while(true) {
         // This reloads any script and resource changes, recompiling files if necessary
         // Since you got IDs instead of the actual structures, grug can update things behind the scenes
+        // Note that this also re-inits entity members which may call game fns
         grug_update(gst);
-        // but you'll need to make sure to _absolutely never ever forget ever_ to realloc and reinit the globals for all the entities whose script changed
-        if(grug_script_was_updated(gst, labrador_script)) {
-            // Old members are non-applicable to the new script, members may have been added/removed
-            free(dog1_members);
-            dog1_members = malloc(grug_members_size(gst, labrador_script));
-            grug_init_members(gst, labrador_script, dog1_members, dog1);
-            GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_members, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
 
-            free(dog2_members);
-            dog2_members = malloc(grug_members_size(gst, labrador_script));
-            grug_init_members(gst, labrador_script, dog2_members, dog2);
-            GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_members, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+        // Most games will want to know what scripts got updated
+        size_t num_updates = grug_num_updates(gst);
+
+        for(size_t i=0; i<num_updates; ++i) {
+            GRUG_FILE_ID updated_file = grug_update_file(gst, i);
+            if(updated_file == labrador_script) {
+                // re-call on_spawn - since the members get reset upon reload.
+                GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog1_entity);
+                GRUG_CALL_ARGLESS_VOID(gst, on_spawn_fn_id, dog2_entity);
+                
+                // call these functions again for demonstration
+                GRUG_CALL_VOID(gst, on_bark_fn_id, dog1_entity, GRUG_ARGS(GRUG_ARG_STRING("Woof")));
+                GRUG_CALL_VOID(gst, on_bark_fn_id, dog2_entity, GRUG_ARGS(GRUG_ARG_STRING("Arf")));
+            }
         }
     }
 
-    // Technically unreachable (oops) but this will also clean up all the scripts
+    // Technically unreachable (oops) but this will also clean up all the scripts and entities
     grug_deinit(gst);
-
-    free(dog1_members);
-    free(dog2_members);
 }
