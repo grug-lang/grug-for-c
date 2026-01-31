@@ -122,6 +122,11 @@ const struct grug_mod_dir* grug_get_mods(struct grug_state* gst);
 
 grug_entity_id grug_create_entity(struct grug_state* gst, grug_file_id script, grug_id id);
 
+grug_file_id grug_entity_get_file(struct grug_state* gst, grug_entity_id entity);
+
+// me_id
+grug_id grug_entity_get_id(struct grug_state* gst, grug_entity_id entity);
+
 void grug_deinit_entity(struct grug_state* gst, grug_entity_id entity);
 
 struct grug_updates_list grug_update(struct grug_state* gst);

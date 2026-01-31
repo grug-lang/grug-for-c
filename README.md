@@ -25,8 +25,6 @@ on_bark(sound: string) {
 - error handling, for compile-time, runtime, and game errors,
 - safe mode v.s fast mode,
 - switching out the backend at runtime,
-- getting the id and script of an entity from the script handle
-- when a script fails to compile
 
 ## options
 
