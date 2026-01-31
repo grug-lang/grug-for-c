@@ -2,12 +2,30 @@
 #include <inttypes.h>
 
 #include <grug.h>
+#include <string.h>
 
 // Game fns get direct access to the grug state / context from which they are called
 // For example, in a system with co-routines, each fiber may have its own grug state.
 void game_fn_print_string(struct grug_state* gst, grug_id me_caller, const union grug_value args[]) {
     (void)gst;
     printf("Entity %" PRIu64 " said %s\n", me_caller, args[0]._string);
+}
+
+bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const* name) {
+    for(size_t file_index = 0; file_index < dir->files_size; ++file_index) {
+        if(strcmp(dir->files[file_index].name, name)) {
+            *out_id = dir->files[file_index].id;
+            return true;
+        }
+    }
+
+    for(size_t dir_index = 0; dir_index < dir->mods_size; ++dir_index) {
+        if(find_file(dir->mods[dir_index], out_id, name)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 int main(void) {
@@ -22,11 +40,41 @@ int main(void) {
 
     // Grab the "ID" of the Dog::on_spawn and Dog::on_bark functions
     // This is not a normal grug object id, but a special function id
-    grug_on_fn_id on_spawn_fn_id = grug_get_fn_id(gst, "Dog", "on_spawn");
-    grug_on_fn_id on_bark_fn_id = grug_get_fn_id(gst, "Dog", "on_bark");
+    grug_on_fn_id on_spawn_fn_id;
+    bool found_on_spawn = false;
+    grug_on_fn_id on_bark_fn_id;
+    bool found_on_bark = false;
+    
+    struct grug_on_fns on_fns = grug_get_fn_ids(gst);
+    for(size_t index = 0; index < on_fns.count; ++index) {
+        struct grug_on_fn_entry entry = on_fns.entries[index];
 
+        if(strcmp(entry.entity_name, "Dog")) {
+            if(strcmp(entry.on_fn_name, "on_spawn")) {
+                on_spawn_fn_id = entry.id;
+                found_on_spawn = true;
+            } else if(strcmp(entry.on_fn_name, "on_bark")) {
+                on_bark_fn_id = entry.id;
+                found_on_bark = true;
+            }
+        }
+    }
+
+    if(!found_on_bark || !found_on_spawn) {
+        printf("Failed to find an on fn, is the mod_api.json correct?");
+        grug_deinit(gst);
+        return 1;
+    }
+    
     // your file object is simple a handle to the script, and isn't the script itself 
-    grug_file_id labrador_script = grug_get_script(gst, "animals/labrador-Dog.grug");
+    grug_file_id labrador_script;
+    bool found_labrador_script = find_file(grug_get_mods(gst), &labrador_script, "labrador-Dog.grug");
+
+    if(!found_labrador_script) {
+        printf("Expected a script labrador-Dog to exist");
+        grug_deinit(gst);
+        return 1;
+    }
 
     // this is the object / entity ID of the dog
     grug_id dog1 = 1;

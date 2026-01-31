@@ -52,6 +52,54 @@ typedef void (*grug_user_free_fn)(void* me, void* ptr, size_t size);
 // TODO: use strings or give the user the actual ids to the script + function?
 typedef void (*runtime_error_handler)(char const* reason, grug_error_type type, char const* on_fn_name, char const* on_fn_path);
 
+struct grug_on_fn_entry {
+    char const* entity_name;
+    char const* on_fn_name;
+    grug_on_fn_id id;
+};
+
+struct grug_on_fns {
+    struct grug_on_fn_entry* entries;
+    size_t count;
+};
+
+struct grug_file {
+    /// fill name of the mod file (ex: ak47-Gun.grug)
+    char const* name;
+    /// what entity type this file implements (ex: Gun)
+    char const* entity_type;
+    /// the name of the entity
+    char const* entity_name;
+
+    /// file id
+    grug_file_id id;
+
+    /// PRIVATE, When this file was last modified
+    int64_t _mtime;
+
+    /// PRIVATE, when resources seen by this script were last modified
+    int64_t _resource_mtimes;
+    size_t _resource_mtimes_size;
+
+    bool _seen;
+};
+
+struct grug_mod_dir {
+    /// Name of this folder
+    char const* name;
+
+    struct grug_mod_dir** mods;
+    size_t mods_size;
+    
+    struct grug_file* files;
+    size_t files_size;  
+    
+    size_t _mods_capacity;
+    size_t _files_capacity;
+
+    bool _seen;
+};
+
 struct grug_init_settings {
     void* user_alloc_obj;
     // When null, grug simply calls malloc() / free() instead.
@@ -72,9 +120,10 @@ void grug_register_game_fn_value_argless(struct grug_state* gst, char const* gam
 void grug_register_game_fn_void(struct grug_state* gst, char const* game_fn_name, game_fn_void fn);
 void grug_register_game_fn_value(struct grug_state* gst, char const* game_fn_name, game_fn_value fn);
 
-grug_on_fn_id grug_get_fn_id(struct grug_state* gst, char const* type, char const* on_fn_name);
+/// Returns a list of all the fn ids for the mod_api.json
+struct grug_on_fns grug_get_fn_ids(struct grug_state* gst);
 
-grug_file_id grug_get_script(struct grug_state* gst, char const* script_name);
+const struct grug_mod_dir* grug_get_mods(struct grug_state* gst);
 
 grug_entity_id grug_create_entity(struct grug_state* gst, grug_file_id script, grug_id id);
 
