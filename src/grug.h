@@ -47,8 +47,6 @@ struct grug_updates_list {
     struct grug_update updates[];
 };
 
-typedef void* (*grug_user_alloc_fn)(void* me, size_t size);
-typedef void (*grug_user_free_fn)(void* me, void* ptr, size_t size);
 // TODO: use strings or give the user the actual ids to the script + function?
 typedef void (*runtime_error_handler)(char const* reason, grug_error_type type, char const* on_fn_name, char const* on_fn_path);
 
@@ -102,9 +100,6 @@ struct grug_mod_dir {
 
 struct grug_init_settings {
     void* user_alloc_obj;
-    // When null, grug simply calls malloc() / free() instead.
-    grug_user_alloc_fn alloc_fn;
-    grug_user_free_fn free_fn;
     runtime_error_handler runtime_error_handler;
 
     // When null, grug assumes "[cwd]/mods"

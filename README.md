@@ -33,14 +33,8 @@ on_bark(sound: string) {
 ## options
 
 Here are your options as someone compiling grug:
-- GRUG_NUMBER: the type to use for numbers, double if undefined
-- GRUG_NO_NUMBER: define this if you don't want / can't have numbers
-- GRUG_BOOL: the type to use for booleans, bool if undefined
-- GRUG_NO_BOOL: define this if you don't want / can't have bools
-- GRUG_STRING: the type to use for strings, char const* if undefined
-- GRUG_NO_STRING: define this if you don't want / can't have strings
-- GRUG_ID: the type to use for ids, uint64_t if undefined
-- GRUG_NO_ID: define this if you don't want / can't have ids, note that GRUG_ID still applies for instances of scripts
- - GRUG_ON_FN_ID: the type to use for on_fn ids, uint64_t if undefined
+- GRUG_MALLOC_HEADER: optional, a header file to include in grug.c to replace allocation functions
+- GRUG_MALLOC: optional, a malloc() function to use with the same arguments as libc malloc
+- GRUG_FREE: optional, a free() function to use. Has the signiture "void free(void* ptr, size_t len)", so your allocator doesn't need to necessarily store the size for each allocation.
 
 
