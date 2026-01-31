@@ -38,13 +38,9 @@ enum grug_error_type_enum {
 
 typedef uint32_t grug_error_type;
 
-struct grug_update {
-    grug_file_id file;
-};
-
 struct grug_updates_list {
     size_t count;
-    struct grug_update updates[];
+    struct grug_file** updates;
 };
 
 // TODO: use strings or give the user the actual ids to the script + function?
@@ -71,6 +67,10 @@ struct grug_file {
 
     /// file id
     grug_file_id id;
+
+    /// Null if there is no error in this file
+    char* error_msg;
+    size_t error_line_number;
 
     /// PRIVATE, When this file was last modified
     int64_t _mtime;

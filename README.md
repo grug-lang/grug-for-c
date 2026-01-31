@@ -27,8 +27,6 @@ on_bark(sound: string) {
 - switching out the backend at runtime,
 - getting the id and script of an entity from the script handle
 - when a script fails to compile
-- when a script doesn't have an on fn that the game tries to get and call
-- replace the alloc function pointers with macro defines instead
 
 ## options
 

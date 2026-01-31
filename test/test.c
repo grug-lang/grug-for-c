@@ -13,8 +13,14 @@ void game_fn_print_string(struct grug_state* gst, grug_id me_caller, const union
 
 bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const* name) {
     for(size_t file_index = 0; file_index < dir->files_size; ++file_index) {
-        if(strcmp(dir->files[file_index].name, name)) {
-            *out_id = dir->files[file_index].id;
+        struct grug_file* file = &dir->files[file_index];
+        // while looking for file is not the right place to report errors, but they need to be reported somewhere and doing it here works.
+        if(file->error_msg) {
+            printf("File %s has an error on line %i: %s", file->name, (int)file->error_line_number, file->error_msg);
+        }
+
+        if(strcmp(file->name, name)) {
+            *out_id = file->id;
             return true;
         }
     }
@@ -98,8 +104,12 @@ int main(void) {
         struct grug_updates_list updates = grug_update(gst);
 
         for(size_t i=0; i<updates.count; ++i) {
-            grug_file_id updated_file = updates.updates[i].file;
-            if(updated_file == labrador_script) {
+            struct grug_file* file = updates.updates[i];
+            if(file->error_msg) {
+                printf("File %s has an error on line %i: %s", file->name, (int)file->error_line_number, file->error_msg);
+            }
+
+            if(file->id == labrador_script) {
                 // re-call on_spawn - since the members get reset upon reload.
                 GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog1_entity);
                 GRUG_CALL_ARGLESS(gst, on_spawn_fn_id, dog2_entity);
