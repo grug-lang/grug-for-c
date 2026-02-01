@@ -24,7 +24,6 @@ on_bark(sound: string) {
 - unwinding the grug stack,
 - error handling, for compile-time, runtime, and game errors,
 - safe mode v.s fast mode,
-- switching out the backend at runtime,
 
 ## options
 

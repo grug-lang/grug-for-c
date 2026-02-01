@@ -98,17 +98,39 @@ struct grug_mod_dir {
     bool _seen;
 };
 
+struct grug_ast {
+    int TODO;
+};
+
+typedef void (*grug_backend_vtable_drop)(void* obj);
+typedef grug_file_id (*grug_backend_vtable_compile_script)(void* obj, struct grug_ast* ast);
+
+struct grug_backend_vtable {
+    grug_backend_vtable_drop drop;
+    grug_backend_vtable_compile_script compile_script;
+    // TODO: finish backend vtable
+};
+
+struct grug_backend {
+    void* obj;
+    struct grug_backend_vtable* vtable;
+};
+
 struct grug_init_settings {
     void* user_alloc_obj;
     runtime_error_handler runtime_error_handler;
 
     // When null, grug assumes "[cwd]/mods"
     char const* mods_folder;
+
+    struct grug_backend backend;
 };
 
 struct grug_init_settings grug_default_settings(void);
 
 struct grug_state* grug_init(struct grug_init_settings settings);
+
+void grug_swap_backend(struct grug_state* gst, struct grug_backend backend);
 
 void grug_register_game_fn_void_argless(struct grug_state* gst, char const* game_fn_name, game_fn_void_argless fn);
 void grug_register_game_fn_value_argless(struct grug_state* gst, char const* game_fn_name, game_fn_value_argless fn);
@@ -151,7 +173,6 @@ static inline union grug_value GRUG_ARG_BOOL(bool v) { union grug_value r; r._bo
 static inline union grug_value GRUG_ARG_STRING(char const* v) { union grug_value r; r._string = v; return r; }
 static inline union grug_value GRUG_ARG_ID(grug_id v) { union grug_value r; r._id = v; return r; }
 #pragma GCC diagnostic pop
-
 
 #ifdef __cplusplus
 }
