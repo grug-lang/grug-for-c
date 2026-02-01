@@ -131,6 +131,7 @@ struct grug_init_settings grug_default_settings(void);
 struct grug_state* grug_init(struct grug_init_settings settings);
 
 void grug_swap_backend(struct grug_state* gst, struct grug_backend backend);
+void grug_set_fast_mode(struct grug_state* gst, bool fast);
 
 void grug_register_game_fn_void_argless(struct grug_state* gst, char const* game_fn_name, game_fn_void_argless fn);
 void grug_register_game_fn_value_argless(struct grug_state* gst, char const* game_fn_name, game_fn_value_argless fn);

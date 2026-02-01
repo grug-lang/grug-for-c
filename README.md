@@ -23,7 +23,6 @@ on_bark(sound: string) {
 - round-trip grug file -> tokens -> json -> tokens - > grug file,
 - unwinding the grug stack,
 - error handling, for compile-time, runtime, and game errors,
-- safe mode v.s fast mode,
 
 ## options
 
