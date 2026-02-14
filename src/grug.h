@@ -98,9 +98,178 @@ struct grug_mod_dir {
     bool _seen;
 };
 
-struct grug_ast {
-    int TODO;
+/* AST */
+
+enum grug_type_enum {
+	GRUG_TYPE_VOID,
+	GRUG_TYPE_BOOL,
+	GRUG_TYPE_NUMBER,
+	GRUG_TYPE_STRING,
+	GRUG_TYPE_ID,
+	GRUG_TYPE_RESOURCE,
+	GRUG_TYPE_ENTITY,
 };
+typedef uint32_t grug_type_enum_type;
+
+struct grug_type {
+	grug_type_enum_type type;
+	union {
+		char* custom_name;   /* optionally used if type is GRUG_TYPE_ID */
+		char* resource_type; /* used if type is GRUG_TYPE_RESOURCE */
+		char* entity_type;   /* optionally used if type is GRUG_TYPE_ENTITY */
+	} extra_data;
+};
+
+enum grug_unary_operator_enum {
+	GRUG_UNARY_NOT   = 0,
+	GRUG_UNARY_MINUS,
+};
+typedef uint32_t grug_unary_operator;
+
+enum grug_binary_operator_enum {
+	GRUG_BINARY_OR = 0,
+	GRUG_BINARY_AND,
+	GRUG_BINARY_DOUBLEEQUALS,
+	GRUG_BINARY_NOTEQUALS,
+	GRUG_BINARY_GREATER,
+	GRUG_BINARY_GREATEREQUALS,
+	GRUG_BINARY_LESS,
+	GRUG_BINARY_LESSEQUALS,
+	GRUG_BINARY_PLUS,
+	GRUG_BINARY_MINUS,
+	GRUG_BINARY_MULTIPLY,
+	GRUG_BINARY_DIVISION,
+	GRUG_BINARY_REMAINDER,
+};
+typedef uint32_t grug_binary_operator;
+
+enum grug_expr_type_enum {
+	GRUG_EXPR_TYPE_TRUE = 0,
+	GRUG_EXPR_TYPE_FALSE,
+	GRUG_EXPR_TYPE_STRING,
+	GRUG_EXPR_TYPE_RESOURCE,
+	GRUG_EXPR_TYPE_ENTITY,
+	GRUG_EXPR_TYPE_IDENTIFIER,
+	GRUG_EXPR_TYPE_NUMBER,
+	/* everything above this is a literal expr */
+	GRUG_EXPR_TYPE_UNARY,
+	GRUG_EXPR_TYPE_BINARY,
+	GRUG_EXPR_TYPE_CALL,
+	GRUG_EXPR_TYPE_PARENTHESIZED,
+};
+typedef uint32_t grug_expr_type;
+
+// TODO: add location info to expressions
+struct grug_expr {
+	struct grug_type result_type;
+	grug_expr_type type;
+	union {
+		char* string;
+		char* resource;
+		char* entity;
+		char* identifier_name;
+		double number;
+		struct {
+			grug_unary_operator op;
+			struct grug_expr* inner;
+		} unary;
+		struct {
+			grug_binary_operator op;
+			struct grug_expr* left;
+			struct grug_expr* right;
+		} binary;
+		struct {
+			char* function_name;
+			struct grug_expr* args;
+			size_t args_count;
+		} call;
+		struct grug_expr* parenthesized;
+	} expr_data;
+};
+
+struct grug_member_variable {
+	char* name;
+	struct grug_type type;
+	struct grug_expr assignment_expr; /* not a pointer */
+};
+
+enum grug_statement_type_enum {
+	GRUG_STATEMENT_VARIABLE = 0,
+	GRUG_STATEMENT_CALL,
+	GRUG_STATEMENT_IF,
+	GRUG_STATEMENT_WHILE,
+	GRUG_STATEMENT_COMMENT,
+	GRUG_STATEMENT_BREAK,
+	GRUG_STATEMENT_CONTINUE,
+	GRUG_STATEMENT_EMPTY,
+};
+typedef uint32_t grug_statement_type;
+
+struct grug_statement {
+	grug_statement_type type;
+	union {
+		struct {
+			char* name;
+			bool has_type;
+			struct grug_type type; /* optional */
+			struct grug_expr assignment_expr; 
+		} variable;
+		struct grug_expr call;
+		struct {
+			struct grug_expr condition;
+			bool chained;
+			struct grug_statement* if_block;
+			size_t if_block_len;
+			struct grug_statement* else_block;
+			size_t else_block_len;
+		} if_stmt;
+		struct {
+			struct grug_expr condition;
+			struct grug_statement* block;
+			size_t block_len;
+		} while_stmt;
+		struct {
+			bool has_value;
+			struct grug_expr expr;
+		} return_stmt;
+		char* comment;
+	} statement_data;
+};
+
+struct grug_argument {
+	char* name; 
+	struct grug_type type;
+};
+
+struct grug_on_function {
+	char* name;
+	struct grug_argument* arguments;
+	size_t arguments_len;
+	struct grug_statement* body_statements;
+	size_t body_statements_len;
+};
+
+struct grug_helper_function {
+	char* name;
+	struct grug_type return_type;
+	struct grug_argument* arguments;
+	size_t arguments_len;
+	struct grug_statement* body_statements;
+	size_t body_statements_len;
+};
+
+struct grug_ast {
+    struct grug_member_variable* members;
+	size_t members_count;
+
+	struct grug_on_function* on_functions;
+	size_t on_functions_count;
+
+	struct grug_helper_function* helper_function;
+	size_t helper_functions_count;
+};
+
+/* AST */
 
 typedef void (*grug_backend_vtable_drop)(void* obj);
 typedef grug_file_id (*grug_backend_vtable_compile_script)(void* obj, struct grug_ast* ast);
