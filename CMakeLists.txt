@@ -7,8 +7,7 @@ project(grug
     LANGUAGES C
 )
 
-# removed pedantic errors because it doesn't allow unnamed structs and unions
-set(GRUG_COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror" "-Wconversion" "-g" "-fsanitize=address,undefined")
+set(GRUG_COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror" "-pedantic-errors" "-Wconversion" "-g" "-fsanitize=address,undefined")
 set(GRUG_LINK_OPTIONS "-fsanitize=address,undefined")
 
 add_library(grug src/grug.c)

@@ -117,7 +117,7 @@ struct grug_type {
 		char* custom_name;   /* optionally used if type is GRUG_TYPE_ID */
 		char* resource_type; /* used if type is GRUG_TYPE_RESOURCE */
 		char* entity_type;   /* optionally used if type is GRUG_TYPE_ENTITY */
-	};
+	} extra_data;
 };
 
 enum grug_unary_operator_enum {
@@ -184,7 +184,7 @@ struct grug_expr {
 			size_t args_count;
 		} call;
 		struct grug_expr* parenthesized;
-	};
+	} expr_data;
 };
 
 struct grug_member_variable {
@@ -233,7 +233,7 @@ struct grug_statement {
 			struct grug_expr expr;
 		} return_stmt;
 		char* comment;
-	};
+	} statement_data;
 };
 
 struct grug_argument {
