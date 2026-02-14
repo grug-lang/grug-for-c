@@ -344,6 +344,14 @@ static inline union grug_value GRUG_ARG_STRING(char const* v) { union grug_value
 static inline union grug_value GRUG_ARG_ID(grug_id v) { union grug_value r; r._id = v; return r; }
 #pragma GCC diagnostic pop
 
+// TODO: use a temporary allocator instead probably, might require a state though?
+struct grug_ast* grug_to_ast(char const* file_str, size_t file_len);
+struct grug_ast* json_to_ast(char const* file_str, size_t file_len);
+void grug_free_ast(struct grug_ast* ast);
+char const* ast_to_json(struct grug_ast* ast, size_t* out_len);
+char const* ast_to_grug(struct grug_ast* ast, size_t* out_len);
+void grug_free_string(char const* str, size_t len);
+
 #ifdef __cplusplus
 }
 #endif

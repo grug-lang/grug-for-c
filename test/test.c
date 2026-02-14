@@ -67,7 +67,7 @@ int main(void) {
     }
 
     if(!found_on_bark || !found_on_spawn) {
-        printf("Failed to find an on fn, is the mod_api.json correct?");
+        printf("Failed to find an on fn, is the mod_api.json correct?\n");
         grug_deinit(gst);
         return 1;
     }
