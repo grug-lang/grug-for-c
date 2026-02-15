@@ -101,7 +101,7 @@ struct grug_mod_dir {
 /* AST */
 
 enum grug_type_enum {
-	GRUG_TYPE_VOID,
+	GRUG_TYPE_VOID = 0,
 	GRUG_TYPE_BOOL,
 	GRUG_TYPE_NUMBER,
 	GRUG_TYPE_STRING,
@@ -161,6 +161,7 @@ typedef uint32_t grug_expr_type;
 
 // TODO: add location info to expressions
 struct grug_expr {
+	bool result_filled;
 	struct grug_type result_type;
 	grug_expr_type type;
 	union {
