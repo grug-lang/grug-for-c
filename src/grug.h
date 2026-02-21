@@ -218,8 +218,7 @@ struct grug_statement {
 	union {
 		struct {
 			char* name;
-			bool has_type;
-			struct grug_type type; /* optional */
+			struct grug_type* type; /* optional */
 			struct grug_expr assignment_expr; 
 		} variable;
 		struct grug_expr call;
