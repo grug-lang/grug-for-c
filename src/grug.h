@@ -236,8 +236,7 @@ struct grug_statement {
 			size_t block_len;
 		} while_stmt;
 		struct {
-			bool has_value;
-			struct grug_expr expr;
+			struct grug_expr* expr; /* Optional */
 		} return_stmt;
 		char* comment;
 	} statement_data;
