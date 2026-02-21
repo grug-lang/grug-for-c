@@ -161,15 +161,21 @@ typedef uint32_t grug_expr_type;
 
 // TODO: add location info to expressions
 struct grug_expr {
-	bool result_filled;
-	struct grug_type result_type;
+	struct grug_type* result_type; /* should be null before type checking and filled in afterwards */
+
+	/* Note: grug_rs puts the following two fields into a separate struct */ 
+	/* This may cause a layout mismatch if any fields are added between result_type and type */
+	/* If that is an issue, it can be solved by putting `type` and `expr_data` into an anonymous struct */
 	grug_expr_type type;
 	union {
 		char* string;
 		char* resource;
 		char* entity;
 		char* identifier_name;
-		double number;
+		struct {
+			double value;
+			char* string;
+		} number;
 		struct {
 			grug_unary_operator op;
 			struct grug_expr* inner;
@@ -190,8 +196,8 @@ struct grug_expr {
 
 struct grug_member_variable {
 	char* name;
-	struct grug_type type;
-	struct grug_expr assignment_expr; /* not a pointer */
+	struct grug_type type; 
+	struct grug_expr assignment_expr; 
 };
 
 enum grug_statement_type_enum {
@@ -199,6 +205,7 @@ enum grug_statement_type_enum {
 	GRUG_STATEMENT_CALL,
 	GRUG_STATEMENT_IF,
 	GRUG_STATEMENT_WHILE,
+	GRUG_STATEMENT_RETURN,
 	GRUG_STATEMENT_COMMENT,
 	GRUG_STATEMENT_BREAK,
 	GRUG_STATEMENT_CONTINUE,
@@ -263,8 +270,11 @@ struct grug_ast {
     struct grug_member_variable* members;
 	size_t members_count;
 
-	struct grug_on_function* on_functions;
-	size_t on_functions_count;
+	/* 
+	 * Each on function entry may be null which indicates that that on_function
+	 * was not present in the script size_t on_functions_count; 
+	 * */
+	struct grug_on_function** on_functions; 
 
 	struct grug_helper_function* helper_function;
 	size_t helper_functions_count;
