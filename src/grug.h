@@ -270,9 +270,10 @@ struct grug_ast {
 
 	/* 
 	 * Each on function entry may be null which indicates that that on_function
-	 * was not present in the script size_t on_functions_count; 
-	 * */
+	 * was not present in the script 
+	 * */ 
 	struct grug_on_function** on_functions; 
+	size_t on_functions_count; 
 
 	struct grug_helper_function* helper_function;
 	size_t helper_functions_count;
