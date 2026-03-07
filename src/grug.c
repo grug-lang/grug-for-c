@@ -52,28 +52,28 @@ const struct grug_mod_dir* grug_get_mods(struct grug_state* gst) {
     return 0;
 }
 
-grug_entity_id grug_create_entity(struct grug_state* gst, grug_file_id script) {
+grug_id grug_create_entity(struct grug_state* gst, grug_file_id script) {
     (void)gst;
     (void)script;
     // TODO: implement
     return 0;
 }
 
-grug_file_id grug_entity_get_file(struct grug_state* gst, grug_entity_id entity) {
+grug_file_id grug_entity_get_file(struct grug_state* gst, grug_id entity) {
     (void)gst;
     (void)entity;
     // TODO: implement
     return 0;
 }
 
-grug_id grug_entity_get_id(struct grug_state* gst, grug_entity_id entity) {
+struct grug_entity* grug_entity_get_data(struct grug_state* gst, grug_id entity) {
     (void)gst;
     (void)entity;
     // TODO: implement
     return 0;
 }
 
-void grug_deinit_entity(struct grug_state* gst, grug_entity_id entity) {
+void grug_deinit_entity(struct grug_state* gst, grug_id entity) {
     (void)gst;
     (void)entity;
     // TODO: implement
@@ -99,7 +99,7 @@ bool grug_all_game_functions_registered(struct grug_state* gst) {
 	return false;
 }
 
-bool grug_call_on_function(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len) {
+bool grug_call_on_function(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len) {
     (void)gst;
     (void)on_fn_id;
     (void)entity;
@@ -109,7 +109,7 @@ bool grug_call_on_function(struct grug_state* gst, grug_entity_id entity, grug_o
 	return false;
 }
 
-bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args) {
+bool grug_call_on_function_raw(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args) {
     (void)gst;
     (void)on_fn_id;
     (void)entity;
@@ -118,7 +118,7 @@ bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, gr
 	return false;
 }
 
-void grug_backend_call(struct grug_state* gst, grug_on_fn_id fn, grug_entity_id entity, const union grug_value args[]) {
+void grug_backend_call(struct grug_state* gst, grug_on_fn_id fn, grug_id entity, const union grug_value args[]) {
     (void)gst;
     (void)fn;
     (void)entity;

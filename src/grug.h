@@ -16,13 +16,6 @@ typedef grug_id grug_on_fn_id;
 typedef grug_id grug_file_id;
 #define INVALID_GRUG_FILE_ID UINT64_MAX
 
-// note: This should maybe be implementation specific
-// I wanna keep this a pointer so that users can get the me_id and file_id from
-// the entity directly
-// But we can also have an api where the user gets this pointer using the id
-typedef struct grug_entity* grug_entity_id;
-/* typedef grug_id grug_entity_id; */
-
 union grug_value {
     double _number;
     bool _bool;
@@ -36,7 +29,7 @@ struct grug_state;
 // These fields should be treated as readonly by the game
 // Backends can modify `data` when initialing or deinitializing data
 struct grug_entity {
-	grug_id me_id;
+	grug_id id;
 	grug_file_id file_id;
 	void* data;
 };
@@ -414,21 +407,24 @@ grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path
 // Compiles and inserts all grug files in the mods directory
 const struct grug_mod_dir* grug_get_mods(struct grug_state* gst);
 
+// TODO: would it make any sense to be able to attach that grug-side entity data to an object after the fact instead of at creation?
+// TODO: alternatively, does it make sense to be able to strip the entity part of an ID?
 // Instantiate an entity from a script
-grug_entity_id grug_create_entity(struct grug_state* gst, grug_file_id script);
+grug_id grug_create_entity(struct grug_state* gst, grug_file_id script);
 
-// Use this if `grug_entity_id` is not the same as `struct grug_entity*`
-grug_file_id grug_entity_get_file_id(struct grug_state* gst, grug_entity_id entity);
+// Gets the file id of an entity, or 0 (null id) if the ID given isn't an entity or doesn't exist.
+grug_file_id grug_entity_get_file_id(struct grug_state* gst, grug_id entity);
 
-// me_id
-// Use this if `grug_entity_id` is not the same as `struct grug_entity*`
-grug_id grug_entity_get_id(struct grug_state* gst, grug_entity_id entity);
+// Gets the entity data of an entity, or NULL if the ID given isn't an entity or doesn't exist.
+struct grug_entity* grug_entity_get_data(struct grug_state* gst, grug_id entity);
 
-// Destroy the data associated with an entity. Using the same id after this
-// function is a UAF
-void grug_deinit_entity(struct grug_state* gst, grug_entity_id entity);
+// Create an object ID.
+grug_id grug_create_object(struct grug_state* gst);
 
-// TODO: Resource management of this array?
+// Destroy the data associated with an entity. Does nothing If called on a non-entity object or non-existent id. TODO: should this have an error?
+void grug_deinit_entity(struct grug_state* gst, grug_id entity);
+
+/// The values returned are entirely allocated temporarily and are 'freed' when grug_update is called again.
 struct grug_updates_list grug_update(struct grug_state* gst);
 
 // Destroy a grug state and free all its resources
@@ -438,10 +434,10 @@ void grug_swap_backend(struct grug_state* gst, struct grug_backend backend);
 // TODO: Should this be done per script? or maybe per function call?
 void grug_set_fast_mode(struct grug_state* gst, bool fast);
 
-// returns false if on function could not be executed or if there was a runtime error
+// returns false if on function could not be executed, if the id given isn't an entity, or if there was a runtime error
 // `args` can be NULL if there are no arguments
-bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args);
-bool grug_call_on_function(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len);
+bool grug_call_on_function_raw(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args);
+bool grug_call_on_function(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len);
 
 #define GRUG_CALL_ARGLESS(_state, _entity, _on_fn_id) \
         grug_call_on_function(_state, _entity, _on_fn_id, NULL, 0); \

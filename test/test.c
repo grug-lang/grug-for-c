@@ -7,12 +7,13 @@
 
 // Game fns get direct access to the grug state / context from which they are called
 // For example, in a system with co-routines, each fiber may have its own grug state.
-void game_fn_print_string(struct grug_state* gst, const union grug_value args[]) {
+union grug_value game_fn_print_string(struct grug_state* gst, const union grug_value args[]) {
     (void)gst;
 	grug_id me_caller = args[0]._id;
 	// Error here on clang with -pedantic errors, apparantly PRIu64 is defined
 	// as a non-standard format specifier
     printf("Entity %" PRIu64 " said %s\n", me_caller, args[1]._string);
+    return (union grug_value){0};
 }
 
 bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const* name) {
@@ -46,7 +47,7 @@ int main(void) {
     struct grug_state* gst = grug_init(settings);
 
     // let grug know where to call the print_string game function
-    grug_register_game_fn_void(gst, "print_string", game_fn_print_string);
+    grug_register_game_fn(gst, "print_string", game_fn_print_string);
 	assert(grug_all_game_functions_registered(gst));
 
     // Grab the "ID" of the Dog::on_spawn and Dog::on_bark functions
@@ -89,12 +90,13 @@ int main(void) {
 
     // this is the object / entity ID of the dog
     // The initialization of members might call game fns, so beware that creating an entity may call game fns
-    grug_entity_id dog1 = grug_create_entity(gst, labrador_script);
+    // An entity is just an object ID with some extra grug-side data attached to it.
+    grug_id dog1 = grug_create_entity(gst, labrador_script);
 	assert(dog1);
     // tell this dog that it has spawned into the world
     GRUG_CALL_ARGLESS(gst, dog1, on_spawn_fn_id);
     
-    grug_entity_id dog2 = grug_create_entity(gst, labrador_script);
+    grug_id dog2 = grug_create_entity(gst, labrador_script);
     GRUG_CALL_ARGLESS(gst, dog2, on_spawn_fn_id);
     
     GRUG_CALL(gst, dog1, on_bark_fn_id, 1, GRUG_ARG_STRING("Woof"));
