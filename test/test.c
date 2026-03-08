@@ -20,8 +20,8 @@ bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const*
     for(size_t file_index = 0; file_index < dir->files_size; ++file_index) {
         struct grug_file* file = &dir->files[file_index];
         // while looking for file is not the right place to report errors, but they need to be reported somewhere and doing it here works.
-        if(file->error_msg) {
-            printf("File %s has an error on line %i: %s\n", file->name, (int)file->error_line_number, file->error_msg);
+        if(file->error) {
+            printf("File %s has an error on line %i: %s\n", file->name, (int)file->error->data.compiletime.line_number, file->error->message);
         }
 
         if(strcmp(file->name, name)) {
@@ -110,8 +110,8 @@ int main(void) {
 
         for(size_t i=0; i<updates.count; ++i) {
             struct grug_file* file = updates.updates[i];
-            if(file->error_msg) {
-                printf("File %s has an error on line %i: %s\n", file->name, (int)file->error_line_number, file->error_msg);
+            if(file->error) {
+                printf("File %s has an error: %s\n", file->name, file->error->message);
             }
 
             if(file->id == labrador_script) {
