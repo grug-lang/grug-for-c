@@ -30,6 +30,8 @@ struct grug_string {
 	size_t len;
 };
 
+#define GRUG_WRAP_STRING(_str) (struct grug_string){.ptr = (char*)(_str), .len = strlen(_str)};
+
 struct grug_state;
 
 // Information about an entity. 

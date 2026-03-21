@@ -88,6 +88,28 @@ static const char *saved_grug_tests_root;
 static const char *saved_grug_file_path;
 static const char *saved_on_fn_name;
 
+struct grug_string alloc_and_read_entire_file(char const* path) {
+    FILE* f = fopen(path, "rb");
+    assert(f && "Failed to open file");
+    // this is kinda a terrible way to do this, but eh
+    // This read all function will only be called on valid regular files
+    fseek(f, 0, SEEK_END);
+    size_t size = (size_t)ftell(f);
+    fseek(f, 0, SEEK_SET);
+    struct grug_string str = grug_alloc_string(size);
+    fread((char*)str.ptr, str.len, 1, f);
+    fclose(f);
+    str.ptr[str.len] = 0;
+    return str;
+}
+
+void write_entire_file(char const* path, struct grug_string str) {
+    FILE* f = fopen(path, "wb");
+    assert(f && "Failed to open file");
+    fwrite(str.ptr, str.len, 1, f);
+    fclose(f);
+}
+
 static const char *compile_grug_file(void* grug_state, const char *grug_file_path) {
 	(void)(grug_state);
     (void)grug_file_path;
@@ -107,23 +129,44 @@ static void on_fn_dispatcher(void* grug_state, const char *on_fn_name, const uni
 
 
 static bool dump_file_to_json(void* grug_state, const char *input_grug_path, const char *output_json_path) {
-	(void)(grug_state);
-    (void)input_grug_path;
-    (void)output_json_path;
-    return false;
+	(void)grug_state;
+    struct grug_string grug_file = alloc_and_read_entire_file(input_grug_path);
+    struct grug_string grug_json = grug_to_json(grug_file);
+    // TODO: handle potential syntax errors
+    write_entire_file(output_json_path, grug_json);
+    grug_free_string(grug_json);
+    grug_free_string(grug_file);
+    return true;
 }
 
 static bool generate_file_from_json(void* grug_state, const char *input_json_path, const char *output_grug_path) {
-	(void)(grug_state);
-    (void)input_json_path;
-    (void)output_grug_path;
-    return false;
+	(void)grug_state;
+    struct grug_string grug_json = alloc_and_read_entire_file(input_json_path);
+    struct grug_string grug_file = json_to_grug(grug_json);
+    // TODO: handle potential syntax errors
+    write_entire_file(output_grug_path, grug_file);
+    grug_free_string(grug_json);
+    grug_free_string(grug_file);
+    return true;
 }
 
 static void game_fn_error(void* grug_state, const char *message) {
 	(void)(grug_state);
     p_grug_tests_runtime_error_handler(message, GRUG_ON_FN_GAME_FN_ERROR, saved_on_fn_name, saved_grug_file_path);
 }
+
+static void* create_grug_state(const char* mod_api_dir, const char* mods_dir) {
+    struct grug_init_settings settings = grug_default_settings();
+    settings.mods_dir_path = GRUG_WRAP_STRING(mods_dir);
+    settings.mod_api_path = GRUG_WRAP_STRING(mod_api_dir);
+    struct grug_state* gst = grug_init(settings);
+	return (void*)gst;
+}
+
+static void destroy_grug_state(void* state) {
+	grug_deinit((struct grug_state*)state);
+}
+
 
 static void* load_sym(void *h, const char *name) {
     #pragma GCC diagnostic push
@@ -214,16 +257,6 @@ static char const* find_and_load_tests_so(void) {
 
     // Let the caller know where we found it
     return locations[location_index-1];
-}
-
-static void* create_grug_state(const char* mod_api_dir, const char* mods_dir) {
-	(void)(mod_api_dir);
-	(void)(mods_dir);
-	return (void*)(0);
-}
-
-static void destroy_grug_state(void* state) {
-	(void)(state);
 }
 
 int main(int argc, const char *argv[]) {
