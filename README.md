@@ -26,6 +26,14 @@ Here are your options as someone compiling grug:
 - GRUG_MALLOC: optional, a malloc() function to use with the same arguments as libc malloc
 - GRUG_FREE: optional, a free() function to use. Has the signature "void free(void* ptr, size_t len)", so your allocator doesn't need to necessarily store the size for each allocation.
 
+## Important changes:
+- make IDs defined by the host, but add docs on what is allowed
+    - requires an actual hash table
+- make entities entirely and utterly separate from object ids
+    - I thought this was done but I guess not
+    - remember: `me` is an object ID, not the entity ID itself (unless the game decides to do it that way). An entity is an instance of a script's globals, NOT the `me` id itself.
+
+
 ## Missing Features
 - amalgamated build
     - take `grug_main.h` and globs it into `grug.h`, taking care to resolve the right includes

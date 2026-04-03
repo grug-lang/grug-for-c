@@ -10,7 +10,7 @@
 
 // Differences from the Zig version:
 // - This allocates the smallest number of needed fixed size blocks instead of creating buffers 1.5x the size of the requested allocation
-//     - this decision was made on the assumption that the underlying allocator is optimized for aspecific large allocation size (which is the case for a raw OS page alloc)
+//     - this decision was made on the assumption that the underlying allocator is optimized for a specific large allocation size (which is the case for a raw OS page alloc)
 
 // TODO(bluesillybeard): Make some proper tests for this arena allocator so we know it works reliably and consistently
 

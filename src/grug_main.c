@@ -25,22 +25,6 @@ void* grug_realloc(void* ptr, size_t old_len, size_t new_len) {
 	return new_ptr;
 }
 
-static void grug_error_list_init(struct grug_error_list* lst) {
-	lst->size = 0;
-	lst->capacity = 0;
-	lst->ptr = 0;
-	grug_arena_init(&lst->arena, 0, 512);
-}
-
-static void grug_error_list_add(struct grug_error_list* lst, struct grug_error item) {
-	if(lst->arena.block_size == 0) {
-		grug_error_list_init(lst);
-	}
-	if(lst->capacity == lst->size) {
-		
-	}
-}
-
 // SECTION MARK: function implementations
 
 struct grug_init_settings grug_default_settings(void) {
@@ -197,8 +181,8 @@ void grug_free_ast(struct grug_ast ast)  {
 	grug_arena_deinit(&ast.arena);
 }
 
-struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error_list* o_errors) {
-	(void)o_errors;
+struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_error) {
+	(void)o_error;
 
 	do {
 		char c = grug.ptr[0];
@@ -259,65 +243,65 @@ struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error_lis
 	return (struct grug_tokens){0};
 }
 
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error_list* o_errors) {
+struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error* o_error) {
 	(void)tokens;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
 }
 
-struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error_list* o_errors) {
+struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error* o_error) {
 	(void)ast;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_tokens){.tokens_len = 0};
 }
 
-struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error_list* o_errors) {
+struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error* o_error) {
 	(void)tokens;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_string){.len = 0};
 }
 
-struct grug_ast json_to_ast(struct grug_string json, struct grug_error_list* o_errors) {
+struct grug_ast json_to_ast(struct grug_string json, struct grug_error* o_error) {
 	(void)json;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
 }
 
-struct grug_string ast_to_json(struct grug_ast ast, struct grug_error_list* o_errors) {
+struct grug_string ast_to_json(struct grug_ast ast, struct grug_error* o_error) {
 	(void)ast;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_string){.len = 0};
 }
 
-struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error_list* o_errors) {
+struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error* o_error) {
 	(void)grug;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
 }
 
-struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error_list* o_errors) {
+struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error* o_error) {
 	(void)ast;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_string){.len = 0};
 }
 
-struct grug_string grug_to_json(struct grug_string grug, struct grug_error_list* o_errors) {
+struct grug_string grug_to_json(struct grug_string grug, struct grug_error* o_error) {
 	(void)grug;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_string){.len = 0};
 }
 
-struct grug_string json_to_grug(struct grug_string json, struct grug_error_list* o_errors) { 
+struct grug_string json_to_grug(struct grug_string json, struct grug_error* o_error) { 
 	(void)json;
-	(void)o_errors;
+	(void)o_error;
 	// TODO
 	return (struct grug_string){.len = 0};
 }

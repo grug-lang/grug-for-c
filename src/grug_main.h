@@ -18,6 +18,12 @@ typedef grug_id grug_on_fn_id;
 typedef grug_id grug_file_id;
 #define INVALID_GRUG_FILE_ID UINT64_MAX
 
+typedef grug_id grug_entity_id;
+#define INVALID_GRUG_ENTITY_ID UINT64_MAX
+
+typedef grug_id grug_object_id;
+#define INVALID_GRUG_OBJECT_ID UINT64_MAX
+
 union grug_value {
 	double _number;
 	bool _bool;
@@ -99,20 +105,6 @@ struct grug_error {
 			struct grug_string error_code;
 		} compiletime;
 	} data;
-};
-
-/// Read-only view of an error list
-struct grug_error_array {
-	/// May be null of num_errors is 0.
-	struct grug_error* errors;
-	size_t count;
-};
-
-struct grug_error_list {
-	struct grug_error* ptr;
-	size_t size;
-	size_t capacity;
-	struct grug_arena arena;
 };
 
 struct grug_updates_list {
@@ -593,17 +585,17 @@ void grug_free_tokens(struct grug_tokens tokens);
 
 void grug_free_ast(struct grug_ast ast);
 
-struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error_list* o_errors);
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error_list* o_errors);
-struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error_list* o_errors);
-struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error_list* o_errors);
-struct grug_ast json_to_ast(struct grug_string json, struct grug_error_list* o_errors);
-struct grug_string ast_to_json(struct grug_ast ast, struct grug_error_list* o_errors);
+struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_error);
+struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error* o_error);
+struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error* o_error);
+struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error* o_error);
+struct grug_ast json_to_ast(struct grug_string json, struct grug_error* o_error);
+struct grug_string ast_to_json(struct grug_ast ast, struct grug_error* o_error);
 
-struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error_list* o_errors);
-struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error_list* o_errors);
-struct grug_string grug_to_json(struct grug_string grug, struct grug_error_list* o_errors);
-struct grug_string json_to_grug(struct grug_string json, struct grug_error_list* o_errors);
+struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error* o_error);
+struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error* o_error);
+struct grug_string grug_to_json(struct grug_string grug, struct grug_error* o_error);
+struct grug_string json_to_grug(struct grug_string json, struct grug_error* o_error);
 
 #ifdef __cplusplus
 }
