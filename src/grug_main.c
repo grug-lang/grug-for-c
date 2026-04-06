@@ -1,4 +1,9 @@
+#include <alloca.h>
 #include <assert.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "grug_main.h"
@@ -165,9 +170,78 @@ struct grug_string grug_alloc_string(size_t len) {
 	};
 }
 
+struct grug_string grug_copy_string(struct grug_string src) {
+	struct grug_string new_str = grug_alloc_string(src.len);
+	memcpy(new_str.ptr, src.ptr, src.len);
+	new_str.ptr[src.len] = 0;
+	return new_str;
+}
+
 void grug_free_string(struct grug_string str) {
 	if(str.len > 0) {
 		GRUG_FREE(str.ptr, str.len + 1);
+	}
+}
+
+struct grug_error grug_copy_error(struct grug_error src) {
+	struct grug_string message = grug_copy_string(src.message);
+	struct grug_string custom_message;
+	if(src.message.ptr == src.custom_message.ptr) {
+		custom_message = message;
+	} else {
+		custom_message = grug_copy_string(src.custom_message);
+	}
+
+	struct grug_file_location file;
+	switch (src.error_type) {
+		case GRUG_ERROR_TYPE_NONE:
+		case GRUG_ERROR_TYPE_INIT: {
+			file = (struct grug_file_location){0};
+			break;
+		}
+		case GRUG_ERROR_TYPE_COMPILE:
+		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW:
+		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED:
+		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
+			file = (struct grug_file_location){
+				.file = src.file.file,
+				.file_name = grug_copy_string(src.file.file_name),
+				.offset = src.file.offset,
+				.num_characters = src.file.num_characters,
+			};
+			break;
+		}
+		default: {
+			assert(false);
+		}
+	}
+
+
+	return (struct grug_error) {
+		.error_type = src.error_type,
+		.message = message,
+		.custom_message = custom_message,
+		.file = file,
+	};
+}
+
+void grug_free_error(struct grug_error src){
+	grug_free_string(src.message);
+	if(src.message.ptr != src.custom_message.ptr) {
+		grug_free_string(src.custom_message);
+	}
+
+	switch (src.error_type) {
+		case GRUG_ERROR_TYPE_NONE:
+		case GRUG_ERROR_TYPE_INIT: {
+			// nothing to free
+		}
+		case GRUG_ERROR_TYPE_COMPILE:
+		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW:
+		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED:
+		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
+			grug_free_string(src.file.file_name);
+		}
 	}
 }
 
@@ -194,6 +268,28 @@ static void add_token(struct grug_tokens* tokens, size_t* capacity, struct grug_
 	tokens->tokens_len += 1;
 }
 
+static struct grug_error grug_alloc_format_error(grug_error_type error, char const* fmt, ...) {
+	va_list v;
+	va_start(v, fmt);
+	int error_message_len = vsnprintf(NULL, 0, fmt, v) + 1;
+	va_end(v);
+	va_start(v, fmt);
+	char* error_msg;
+	if(error_message_len >= 0) {
+		error_msg = alloca((unsigned int)error_message_len);
+		snprintf(error_msg, (size_t)error_message_len, fmt, v);
+	} else {
+		error_msg = "Failed to format message";
+		error_message_len = (int)strlen(error_msg);
+	}
+	va_end(v);
+	return grug_copy_error((struct grug_error) {
+		.error_type = error,
+		.message = (struct grug_string){.ptr = error_msg, .len = (size_t)error_message_len},
+
+	});
+}
+
 struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_error) {
 	(void)o_error;
 	struct grug_tokens tokens = {
@@ -204,6 +300,7 @@ struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_
 	char* src = grug.ptr;
 	size_t src_len = grug.len;
 	size_t i = 0;
+	size_t line_number = 1;
 	// TODO: clean up this horrible copy-paste of the grug-for-python code unceremoniously translated line-for-line without splitting things into functions.
 	while(i < grug.len) {
 		char c = src[i];
@@ -249,6 +346,7 @@ struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_
 		}
 		else if(c == '\n') {
 			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NEWLINE, .contents = {.ptr = &src[i], .len = 1}});
+			line_number += 1;
 			i += 1;
 		}
 		else if(c == '=' && i + 1 < src_len && src[i + 1] == '=') {
@@ -322,102 +420,129 @@ struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_
 		else if((i+sizeof("continue") < src_len && memcmp(&src[i], "continue", sizeof("continue")) == 0) && ((i + 8) >= src_len || (!(src[i + 8] >= '0' && src[i + 8] <= '9') || src[i + 8] == '_'))) {
 			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_CONTINUE, .contents = GRUG_WRAP_STRING("continue")});
 			i += 8;
+		} else if (c == ' ') {
+			if(i + 1 >= src_len || src[i + 1] != ' ') {
+				add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_SPACE, .contents = GRUG_WRAP_STRING(" ")});
+				i += 1;
+				continue;
+			}
+			size_t old_i = i;
+			while(i < src_len && src[i] == ' '){
+				i += 1;
+			}
+
+			size_t spaces = i - old_i;
+
+			if(spaces % GRUG_SPACES_PER_INDENT != 0){
+				// TODO: what to do when there are more than 2gib of spaces?
+				if(spaces > INT_MAX) {
+					spaces = INT_MAX;
+				}
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Encountered %d spaces, while indentation expects multiples of %d spaces, on line %d", (int)spaces, GRUG_SPACES_PER_INDENT, line_number);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+			// TODO: make the number of spaces actually match the spaces per indent
+			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_INDENTATION, .contents = GRUG_WRAP_STRING("    ")});
+		} else if(c == '*') {
+			i += 1;
+			size_t start = i;
+			while(i < src_len && src[i] != '"') {
+				if(src[i] == '\0'){
+					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected null byte on line %d", line_number);
+					// Free whatever we had so far
+					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+					return (struct grug_tokens){0};
+				} else if(src[i] == '\\' && i + 1 < src_len && (src[i + 1] == '\r' || src[i + 1] == '\n')) {
+					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected line break in string on line %d", line_number);
+					// Free whatever we had so far
+					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+					return (struct grug_tokens){0};
+				}
+				i += 1;
+			}
+			if(i >= src_len) {
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unclosed \" on line %d", line_number);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_STRING, .contents = (struct grug_string){.ptr = &src[start], .len = (i - start)}});
+			i += 1;
+		} else if(isalpha(c) || c == '_') {
+			size_t start = i;
+			while(i < src_len && (isalnum(src[i]) || src[i] == '_')) {
+				i += 1;
+			}
+			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_WORD, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
+		} else if(isdigit(c)) {
+			size_t start = i;
+			bool seen_period = false;
+			i += 1;
+			while(i < src_len && (isdigit(src[i]) || src[i] == '.')) {
+				if(src[i] == '.') {
+					if(seen_period) {
+						*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Encountered two '.' periods in a number on line %d", line_number);
+						// Free whatever we had so far
+						GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+						return (struct grug_tokens){0};
+					}
+					seen_period = true;
+				}
+				i += 1;
+			}
+			if(src[i - 1] == '.') {
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Missing digit after decimal point in %*.s", i - start, &src[start]);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+
+			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NUMBER, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
+		} else if(c == '#') {
+			i += 1;
+			if(i >= src_len || src[i] != ' ') {
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Expected a single space after the '#' on line %d", line_number);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+			i += 1;
+			size_t start = i;
+			while(i < src_len && src[i] != '\r' && src[i] != '\n'){
+				if(src[i] == '\0') {
+					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected null byte on line %d", line_number);
+					// Free whatever we had so far
+					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+					return (struct grug_tokens){0};
+				}
+				i += 1;
+			}
+
+			size_t comment_len = i - start;
+			if(comment_len == 0) {
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Expected the comment to contain some text on line %d", line_number);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+
+			if(isspace(src[i - 1])) {
+				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "A comment has trailing whitespace on line %d", line_number);
+				// Free whatever we had so far
+				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+				return (struct grug_tokens){0};
+			}
+
+			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_COMMENT, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
+		} else {
+			*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unrecognized character '%c' on line %d", c, line_number);
+			// Free whatever we had so far
+			GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
+			return (struct grug_tokens){0};
 		}
 	}
-
-	// 	elif c == " ":
-	// 		if i + 1 >= src_len or src[i + 1] != " ":
-	// 			tokens.append(Token(TokenType.SPACE_TOKEN, " "))
-	// 			i += 1
-	// 			continue
-
-	// 		old_i = i
-	// 		while i < src_len and src[i] == " ":
-	// 			i += 1
-
-	// 		spaces = i - old_i
-
-	// 		if spaces % SPACES_PER_INDENT != 0:
-	// 			raise TokenizerError(
-	// 				f"Encountered {spaces} spaces, while indentation expects multiples of {SPACES_PER_INDENT} spaces, on line {self.get_character_line_number(i)}"
-	// 			)
-
-	// 		tokens.append(Token(TokenType.INDENTATION_TOKEN, " " * spaces))
-	// 	elif c == '"':
-	// 		open_quote_index = i
-	// 		i += 1
-	// 		start = i
-	// 		while i < src_len and src[i] != '"':
-	// 			if src[i] == "\0":
-	// 				raise TokenizerError(
-	// 					f"Unexpected null byte on line {self.get_character_line_number(i)}"
-	// 				)
-	// 			elif src[i] == "\\" and i + 1 < src_len and src[i + 1] in "\r\n":
-	// 				raise TokenizerError(
-	// 					f"Unexpected line break in string on line {self.get_character_line_number(i)}"
-	// 				)
-	// 			i += 1
-	// 		if i >= src_len:
-	// 			raise TokenizerError(
-	// 				f'Unclosed " on line {self.get_character_line_number(open_quote_index)}'
-	// 			)
-	// 		tokens.append(Token(TokenType.STRING_TOKEN, src[start:i]))
-	// 		i += 1
-	// 	elif c.isalpha() or c == "_":
-	// 		start = i
-	// 		while i < src_len and (src[i].isalnum() or src[i] == "_"):
-	// 			i += 1
-	// 		tokens.append(Token(TokenType.WORD_TOKEN, src[start:i]))
-	// 	elif c.isdigit():
-	// 		start = i
-	// 		seen_period = False
-	// 		i += 1
-	// 		while i < src_len and (src[i].isdigit() or src[i] == "."):
-	// 			if src[i] == ".":
-	// 				if seen_period:
-	// 					raise TokenizerError(
-	// 						f"Encountered two '.' periods in a number on line {self.get_character_line_number(i)}"
-	// 					)
-	// 				seen_period = True
-	// 			i += 1
-
-	// 		if src[i - 1] == ".":
-	// 			raise TokenizerError(
-	// 				f"Missing digit after decimal point in '{src[start:i]}'"
-	// 			)
-
-	// 		tokens.append(Token(TokenType.NUMBER_TOKEN, src[start:i]))
-	// 	elif c == "#":
-	// 		i += 1
-	// 		if i >= src_len or src[i] != " ":
-	// 			raise TokenizerError(
-	// 				f"Expected a single space after the '#' on line {self.get_character_line_number(i)}"
-	// 			)
-	// 		i += 1
-	// 		start = i
-	// 		while i < src_len and src[i] not in "\r\n":
-	// 			if src[i] == "\0":
-	// 				raise TokenizerError(
-	// 					f"Unexpected null byte on line {self.get_character_line_number(i)}"
-	// 				)
-	// 			i += 1
-
-	// 		comment_len = i - start
-	// 		if comment_len == 0:
-	// 			raise TokenizerError(
-	// 				f"Expected the comment to contain some text on line {self.get_character_line_number(i)}"
-	// 			)
-
-	// 		if src[i - 1].isspace():
-	// 			raise TokenizerError(
-	// 				f"A comment has trailing whitespace on line {self.get_character_line_number(i)}"
-	// 			)
-
-	// 		tokens.append(Token(TokenType.COMMENT_TOKEN, src[start:i]))
-	// 	else:
-	// 		raise TokenizerError(
-	// 			f"Unrecognized character '{c}' on line {self.get_character_line_number(i)}"
-	// 		)
 
 	return (struct grug_tokens){0};
 }

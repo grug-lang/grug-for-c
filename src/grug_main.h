@@ -65,21 +65,22 @@ enum grug_error_type_enum {
 
 typedef uint32_t grug_error_type;
 
+struct grug_file_location {
+	struct grug_string file_name;
+	grug_file_id file;
+	/// the character index into the file where the error occurred.
+	size_t offset;
+	/// The number of characters to highlight when reporting the error (how many characters to put the squiggly lines under)
+	size_t num_characters;
+};
+
 struct grug_error {
 	grug_error_type error_type;
 	struct grug_string message;
 	/// custom implementation-specific message that doesn't necessarily pass the testing suite
 	struct grug_string custom_message;
 	/// Information for if the error occurred within a grug script
-	struct {
-		/// The file where the error occurred
-		struct grug_string file_name;
-		grug_file_id file;
-		/// the character index into the file where the error occurred.
-		size_t offset;
-		/// The number of characters to highlight when reporting the error (how many characters to put the squiggly lines under)
-		size_t num_characters;
-	} file;
+	struct grug_file_location file;
 };
 
 struct grug_updates_list {
@@ -178,6 +179,8 @@ enum grug_token_type_enum {
 };
 
 typedef uint32_t grug_token_type;
+
+#define GRUG_SPACES_PER_INDENT 4
 
 struct grug_token {
 	grug_token_type type;
@@ -466,9 +469,6 @@ struct grug_init_settings grug_default_settings(void);
 // Returns a non-null but "empty" state upon an error
 struct grug_state* grug_init(struct grug_init_settings settings);
 
-/// Returns a list of errors that have occurred. This list is cleared (and the memory returned here is invalidated) at the start of grug_update().
-struct grug_error_array grug_get_errors(struct grug_state* gst);
-
 // returns true if registration is successful
 // returns false if not.
 //
@@ -541,6 +541,11 @@ static inline union grug_value GRUG_ARG_ID(grug_object_id v)         {union grug
 // This is basically a wrapper of malloc, but it's here to allow for a sensible alloc -> free lifetime with a pair of functions
 // it does also allocate space for a null terminator
 struct grug_string grug_alloc_string(size_t len);
+struct grug_string grug_copy_string(struct grug_string src);
+
+struct grug_error grug_copy_error(struct grug_error src);
+void grug_free_error(struct grug_error src);
+
 void grug_free_string(struct grug_string str);
 
 void grug_free_tokens(struct grug_tokens tokens);
