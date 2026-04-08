@@ -35,8 +35,8 @@ void* grug_realloc(void* ptr, size_t old_len, size_t new_len) {
 struct grug_init_settings grug_default_settings(void) {
 	return (struct grug_init_settings){ 
 		// TODO: interpreter backend
-		.mod_api_path = (struct grug_string){.len = 0},
-		.mods_dir_path = (struct grug_string){.len = 0},
+		.mod_api_path = "",
+		.mods_dir_path = "",
 		.runtime_error_handler = (struct grug_runtime_error_handler){0},
 		.backend = (struct grug_backend){.obj = 0, .vtable = 0},
 	};
