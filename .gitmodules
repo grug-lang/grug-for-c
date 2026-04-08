@@ -1,0 +1,3 @@
+[submodule "grug-tests"]
+	path = grug-tests
+	url = https://github.com/grug-lang/grug-tests
