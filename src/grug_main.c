@@ -30,6 +30,58 @@ void* grug_realloc(void* ptr, size_t old_len, size_t new_len) {
 	return new_ptr;
 }
 
+static char* read_all_contents(char const* file_path, size_t* out_len) {
+	struct block {
+		char data[1024];
+		size_t data_len;
+		struct block* pnext;
+	};
+
+	struct block* first;
+	struct block* last;
+	size_t total_size = 0;
+
+	FILE* f = fopen(file_path, "rb");
+
+	if(!f) {
+		if(out_len) {
+			*out_len = 0;
+		}
+		return NULL;
+	}
+
+	first = malloc(sizeof(struct block));
+
+	first->data_len = fread(first->data, 1, 1024, f);
+	total_size += first->data_len;
+
+	last = first;
+
+	while(!feof(f)) {
+		struct block* new = malloc(sizeof(struct block));
+		last->pnext = new;
+		last = new;
+		last->data_len = fread(last->data, 1, 1024, f);
+		total_size += last->data_len;
+	}
+
+	fclose(f);
+
+	char* data = malloc(total_size + 1);
+	size_t data_written = 0;
+	while(first) {
+		memcpy(data + data_written, first->data, first->data_len);
+		data_written += first->data_len;
+		struct block* next = first->pnext;
+		free(first);
+		first = next;
+	}
+	if(out_len) {
+		*out_len = total_size;
+	}
+	return data;
+}
+
 // SECTION MARK: function implementations
 
 struct grug_init_settings grug_default_settings(void) {
@@ -74,6 +126,22 @@ struct grug_on_fns grug_get_fn_ids(struct grug_state* gst) {
 		.count = 0,
 		.entries = 0,
 	};
+}
+
+grug_file_id grug_compile_file(struct grug_state* gst, const char* path) {
+	size_t file_len;
+	char* file = read_all_contents(path, &file_len);
+	grug_file_id result = grug_compile_file_from_str(gst, path, file);
+	free(file);
+	return result;
+}
+
+grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path, char* file_text) {
+	// TODO: implement
+	(void)gst;
+	(void)path;
+	(void)file_text;
+	return 0;
 }
 
 const struct grug_mod_dir* grug_get_mods(struct grug_state* gst) {
