@@ -376,8 +376,6 @@ struct grug_state_vtable vtable = {
 };
 
 int main(int argc, char** argv) {
-	(void)argc;
-	(void)argv;
 	char const* whitelisted_test = NULL;
 	if(argc > 1) {
 		whitelisted_test = argv[1];
