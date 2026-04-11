@@ -135,7 +135,6 @@ void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id,
 }
 
 bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_path, const char *output_json_path) {
-	// TODO: it has just occurred to me that error-checking the grug file in terms of mod_api usage requires the state.
 	(void)state;
 	size_t grug_len;
 	char* grug_contents = read_all_contents(input_grug_path, &grug_len);
@@ -162,7 +161,6 @@ bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_pat
 }
 
 bool impl_generate_file_from_json(struct grug_state* state, const char *input_json_path, const char *output_grug_path) {
-	// TODO: it has just occurred to me that error-checking the grug file in terms of mod_api usage requires the state.
 	(void)state;
 	size_t grug_len;
 	char* json_contents = read_all_contents(input_json_path, &grug_len);
