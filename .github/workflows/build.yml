@@ -5,15 +5,27 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc-14, clang]
 
     steps:
-      - name: Checkout repo (with submodules)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Configure
-        run: cmake -B build
+      - run: sudo apt-get update
 
-      - name: Build
-        run: cmake --build build
+      - run: |
+          if [ "${{ matrix.compiler }}" = "gcc-14" ]; then
+            sudo apt-get install -y gcc-14 g++-14
+            echo "CC=gcc-14" >> $GITHUB_ENV
+            echo "CXX=g++-14" >> $GITHUB_ENV
+          else
+            sudo apt-get install -y clang
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+          fi
+
+      - run: cmake -B build
+      - run: cmake --build build
