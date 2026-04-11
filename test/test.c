@@ -1,5 +1,4 @@
 // Nasty, Disgusting, Evil macro tomfoolery
-#include "grug_main.h"
 #define grug_value test_grug_value
 #define game_fn test_game_fn
 #define grug_number test_grug_number
@@ -34,6 +33,7 @@ typedef GRUG_TYPE_ON_FN_ID TEST_GRUG_TYPE_ON_FN_ID;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 static char* read_all_contents(char const* file_path, size_t* out_len) {
 	struct block {
@@ -125,13 +125,13 @@ void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id,
 	for(size_t index=0; index<fns.count; index += 1) {
 		struct grug_on_fn_entry entry = fns.entries[index];
 		if(strcmp(entry.on_fn_name.ptr, fn_name) == 0) {
+			assert(file_id->id == grug_entity_get_file_id(state, g_entity));
 			// The arg unions should be identical.
 			// TODO: is this truly the case 100% of the time?
 			grug_call_on_function(state, g_entity, entry.id, (union grug_value*) args, args_count);
+			return;
 		}
 	}
-	// TODO: assert that this matches the file id that g_entity is an instance of
-	(void)file_id;
 }
 
 bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_path, const char *output_json_path) {
