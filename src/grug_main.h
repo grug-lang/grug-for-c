@@ -526,6 +526,8 @@ void grug_set_fast_mode(struct grug_state* gst, bool fast);
 bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args);
 bool grug_call_on_function(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len);
 
+void grug_game_fn_runtime_error(struct grug_state* gst, char const* message);
+
 #define GRUG_CALL_ARGLESS(_state, _entity, _on_fn_id) \
 		grug_call_on_function(_state, _entity, _on_fn_id, NULL, 0); \
 

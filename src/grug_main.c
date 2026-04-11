@@ -171,6 +171,13 @@ grug_id grug_create_entity(struct grug_state* gst, grug_file_id script, grug_obj
 	return 0;
 }
 
+grug_file_id grug_entity_get_file_id(struct grug_state* gst, grug_entity_id entity) {
+	(void)gst;
+	(void)entity;
+	// TODO: implement
+	return 0;
+}
+
 grug_file_id grug_entity_get_file(struct grug_state* gst, grug_id entity) {
 	(void)gst;
 	(void)entity;
@@ -228,6 +235,12 @@ bool grug_call_on_function_raw(struct grug_state* gst, grug_id entity, grug_on_f
 	(void)args;
 	// TODO: implement
 	return false;
+}
+
+void grug_game_fn_runtime_error(struct grug_state* gst, char const* message) {
+	// TODO: implement
+	(void)gst;
+	(void)message;
 }
 
 void grug_backend_call(struct grug_state* gst, grug_on_fn_id fn, grug_id entity, const union grug_value args[]) {

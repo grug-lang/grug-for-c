@@ -187,9 +187,7 @@ bool impl_generate_file_from_json(struct grug_state* state, const char *input_js
 }
 
 void impl_game_fn_error(struct grug_state* state, const char *message) {
-	// TODO
-	(void)state;
-	(void)message;
+	grug_game_fn_runtime_error(state, message);
 }
 
 struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* mods_dir) {
