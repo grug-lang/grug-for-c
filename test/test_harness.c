@@ -105,7 +105,7 @@ struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char
 		return 0;
 	}
 	// TODO: maybe try to see if we already have this id and not allocate a new test wrapper for it every time
-	struct grug_file_id* res_ptr = malloc(sizeof(struct grug_file_id*));
+	struct grug_file_id* res_ptr = malloc(sizeof(struct grug_file_id));
 	res_ptr->id = res;
 	res_ptr->pnext = g_file_wrappers;
 	g_file_wrappers = res_ptr;
