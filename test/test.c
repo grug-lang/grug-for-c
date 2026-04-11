@@ -1,7 +1,4 @@
 // Nasty, Disgusting, Evil macro tomfoolery
-#include "grug_main.h"
-#include <alloca.h>
-#include <string.h>
 #define grug_value test_grug_value
 #define game_fn test_game_fn
 #define grug_number test_grug_number
@@ -32,6 +29,62 @@ typedef GRUG_TYPE_ON_FN_ID TEST_GRUG_TYPE_ON_FN_ID;
 #undef GRUG_TYPE_ON_FN_ID
 
 #include <grug.h>
+#include <alloca.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static char* read_all_contents(char const* file_path, size_t* out_len) {
+	struct block {
+		char data[1024];
+		size_t data_len;
+		struct block* pnext;
+	};
+
+	struct block* first;
+	struct block* last;
+	size_t total_size = 0;
+
+	FILE* f = fopen(file_path, "rb");
+
+	if(!f) {
+		if(out_len) {
+			*out_len = 0;
+		}
+		return NULL;
+	}
+
+	first = malloc(sizeof(struct block));
+
+	first->data_len = fread(first->data, 1, 1024, f);
+	total_size += first->data_len;
+
+	last = first;
+
+	while(!feof(f)) {
+		struct block* new = malloc(sizeof(struct block));
+		last->pnext = new;
+		last = new;
+		last->data_len = fread(last->data, 1, 1024, f);
+		total_size += last->data_len;
+	}
+
+	fclose(f);
+
+	char* data = malloc(total_size + 1);
+	size_t data_written = 0;
+	while(first) {
+		memcpy(data + data_written, first->data, first->data_len);
+		data_written += first->data_len;
+		struct block* next = first->pnext;
+		free(first);
+		first = next;
+	}
+	if(out_len) {
+		*out_len = total_size;
+	}
+	return data;
+}
 
 grug_entity_id g_entity = 0;
 
@@ -71,20 +124,61 @@ void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id,
 }
 
 bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_path, const char *output_json_path) {
+	// TODO: it has just occurred to me that error-checking the grug file in terms of mod_api usage requires the state.
 	(void)state;
-	(void)input_grug_path;
-	(void)output_json_path;
+	size_t grug_len;
+	char* grug_contents = read_all_contents(input_grug_path, &grug_len);
+	if(!grug_contents) {
+		return true;
+	}
+	struct grug_error maybe_error;
+	struct grug_string json = grug_to_json((struct grug_string){.ptr = grug_contents, .len = grug_len}, &maybe_error);
+	if(!json.ptr) {
+		free(grug_contents);
+		return true;
+	}
+	FILE* out = fopen(output_json_path, "wb");
+	if(!out) {
+		grug_free_string(json);
+		free(grug_contents);
+		return true;
+	}
+	fwrite(json.ptr, 1, json.len, out);
+	fclose(out);
+	grug_free_string(json);
+	free(grug_contents);
 	return false;
 }
 
 bool impl_generate_file_from_json(struct grug_state* state, const char *input_json_path, const char *output_grug_path) {
+	// TODO: it has just occurred to me that error-checking the grug file in terms of mod_api usage requires the state.
 	(void)state;
-	(void)input_json_path;
-	(void)output_grug_path;
+	size_t grug_len;
+	char* json_contents = read_all_contents(input_json_path, &grug_len);
+	if(!json_contents) {
+		return true;
+	}
+	struct grug_error maybe_error;
+	struct grug_string grug = json_to_grug((struct grug_string){.ptr = json_contents, .len = grug_len}, &maybe_error);
+	if(!grug.ptr) {
+		free(json_contents);
+		return true;
+	}
+	FILE* out = fopen(output_grug_path, "wb");
+	if(!out) {
+		grug_free_string(grug);
+		free(json_contents);
+		return true;
+	}
+	fwrite(grug.ptr, 1, grug.len, out);
+	fclose(out);
+	grug_free_string(grug);
+	free(json_contents);
 	return false;
 }
 
 void impl_game_fn_error(struct grug_state* state, const char *message) {
+	// TODO
 	(void)state;
 	(void)message;
 }
@@ -93,6 +187,7 @@ struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* 
 	struct grug_init_settings settings  = grug_default_settings();
 	settings.mod_api_path = mod_api_path;
 	settings.mods_dir_path = mods_dir;
+	// TODO: handle error
 	struct grug_state* gst = grug_init(settings);
 	return gst;
 }
