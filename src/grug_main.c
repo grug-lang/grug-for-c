@@ -113,6 +113,12 @@ struct grug_error grug_get_error(struct grug_state* gst) {
 	return gst->last_error;
 }
 
+struct grug_callstack grug_get_callstack(struct grug_state* gst) {
+	// TODO: implement
+	(void)gst;
+	return (struct grug_callstack){.entries = 0, .num_entries = 0};
+}
+
 void grug_swap_backend(struct grug_state* gst, struct grug_backend backend) {
 	(void)gst;
 	(void)backend;
