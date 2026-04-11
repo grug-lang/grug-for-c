@@ -7,7 +7,8 @@
 
 // Game fns get direct access to the grug state / context from which they are called
 // For example, in a system with co-routines, each fiber may have its own grug state.
-union grug_value game_fn_print_string(struct grug_state* gst, const union grug_value args[]) {
+union grug_value game_fn_print_string(struct grug_state* gst, void* fn_dat, const union grug_value args[]) {
+    (void)fn_dat;
     (void)gst;
 	grug_id me_caller = args[0]._id;
 	// Error here on clang with -pedantic errors, apparantly PRIu64 is defined
@@ -53,7 +54,7 @@ int main(void) {
 	}
 
     // let grug know where to call the print_string game function
-    grug_register_game_fn(gst, "print_string", game_fn_print_string);
+    grug_register_game_fn(gst, "print_string", 0, game_fn_print_string);
 	assert(grug_all_game_functions_registered(gst));
 
     // Grab the "ID" of the Dog::on_spawn and Dog::on_bark functions
