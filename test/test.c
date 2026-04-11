@@ -91,9 +91,8 @@ grug_entity_id g_entity = 0;
 struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char* file_path, const char** error_out) {
 	grug_file_id res = grug_compile_file(state, file_path);
 	if(!res) {
-		// Bro what in the world, how is it even physically possible that we forgot a function to get non-init compilation errors
-		// TODO: fix
-		*error_out = "Something went wrong";
+		struct grug_error e = grug_get_error(state);
+		*error_out = e.message.ptr;
 		return 0;
 	}
 	// TODO: This assumes a pointer is big enough to hold the ID, which breaks on anything but 64 bit platforms
@@ -187,8 +186,13 @@ struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* 
 	struct grug_init_settings settings  = grug_default_settings();
 	settings.mod_api_path = mod_api_path;
 	settings.mods_dir_path = mods_dir;
-	// TODO: handle error
-	struct grug_state* gst = grug_init(settings);
+	struct grug_error e;
+	struct grug_state* gst = grug_init(settings, &e);
+	if(!gst) {
+		fprintf(stderr, "Failed to create state: %s", e.message.ptr);
+		grug_free_error(e);
+		return 0;
+	}
 	return gst;
 }
 

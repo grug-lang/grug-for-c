@@ -84,6 +84,10 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 
 // SECTION MARK: function implementations
 
+struct grug_state {
+	struct grug_error last_error;
+};
+
 struct grug_init_settings grug_default_settings(void) {
 	return (struct grug_init_settings){ 
 		// TODO: interpreter backend
@@ -94,10 +98,19 @@ struct grug_init_settings grug_default_settings(void) {
 	};
 }
 
-struct grug_state* grug_init(struct grug_init_settings settings) {
-	(void) settings;
+struct grug_state* grug_init(struct grug_init_settings settings, struct grug_error* out_error) {
+	*out_error = grug_copy_error((struct grug_error) {
+		.error_type = GRUG_ERROR_TYPE_INIT,
+		.message = GRUG_WRAP_STRING("Not Implemented\n"),
+		.custom_message = GRUG_WRAP_STRING("Not Implemented\n"),
+	});
+	(void)settings;
 	// TODO: implement
 	return 0;
+}
+
+struct grug_error grug_get_error(struct grug_state* gst) {
+	return gst->last_error;
 }
 
 void grug_swap_backend(struct grug_state* gst, struct grug_backend backend) {
