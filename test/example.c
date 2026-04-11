@@ -44,7 +44,13 @@ int main(void) {
     struct grug_init_settings settings = grug_default_settings();
 
     // gst "grug state" contains all of the grug library state
-    struct grug_state* gst = grug_init(settings);
+    struct grug_error e;
+    struct grug_state* gst = grug_init(settings, &e);
+    if(!gst) {
+		fprintf(stderr, "Failed to create state: %s", e.message.ptr);
+		grug_free_error(e);
+		return 1;
+	}
 
     // let grug know where to call the print_string game function
     grug_register_game_fn(gst, "print_string", game_fn_print_string);

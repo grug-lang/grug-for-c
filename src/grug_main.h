@@ -466,8 +466,10 @@ struct grug_init_settings {
 
 struct grug_init_settings grug_default_settings(void);
 
-// Returns a non-null but "empty" state upon an error
-struct grug_state* grug_init(struct grug_init_settings settings);
+/// Returns null upon an error and writes to out_error
+struct grug_state* grug_init(struct grug_init_settings settings, struct grug_error* out_error);
+
+struct grug_error grug_get_error(struct grug_state* gst);
 
 // returns true if registration is successful
 // returns false if not.
