@@ -17,16 +17,16 @@ target_compile_options(grug PRIVATE ${GRUG_COMPILE_OPTIONS})
 target_link_options(grug PRIVATE ${GRUG_LINK_OPTIONS})
 target_include_directories(grug PUBLIC src)
 
-add_executable(test
-    test/test.c
+add_executable(test_harness
+    test/test_harness.c
     grug-tests/tests.c
 )
 
-set_target_properties(test PROPERTIES C_STANDARD 99)
-target_compile_options(test PRIVATE ${GRUG_COMPILE_OPTIONS})
-target_link_options(test PRIVATE ${GRUG_LINK_OPTIONS})
-target_link_libraries(test PRIVATE grug m)
-target_include_directories(test PRIVATE grug-tests)
+set_target_properties(test_harness PROPERTIES C_STANDARD 99)
+target_compile_options(test_harness PRIVATE ${GRUG_COMPILE_OPTIONS})
+target_link_options(test_harness PRIVATE ${GRUG_LINK_OPTIONS})
+target_link_libraries(test_harness PRIVATE grug m)
+target_include_directories(test_harness PRIVATE grug-tests)
 
 add_executable(example
     test/example.c
