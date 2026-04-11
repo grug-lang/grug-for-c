@@ -114,7 +114,6 @@ struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char
 }
 
 void impl_init_globals(struct grug_state* state, struct grug_file_id* file_id) {
-	// TODO: something feels wrong about this
 	if(g_entity) {
 		grug_deinit_entity(state, g_entity);
 	}
@@ -129,7 +128,6 @@ void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id,
 		if(strcmp(entry.on_fn_name.ptr, fn_name) == 0) {
 			assert(file_id->id == grug_entity_get_file_id(state, g_entity));
 			// The arg unions should be identical.
-			// TODO: is this truly the case 100% of the time?
 			grug_call_on_function(state, g_entity, entry.id, (union grug_value*) args, args_count);
 			return;
 		}
@@ -199,13 +197,12 @@ struct test_game_fn_data {
 
 static union grug_value test_game_fn_wrapper(struct grug_state* gst, void* fn_data, const union grug_value args[]) {
 	struct test_game_fn_data* dat = (struct test_game_fn_data*)fn_data;
-	// TODO: is test_grug_value and grug_value always the same?
 	union test_grug_value res = dat->fn(gst, (const union test_grug_value*) args);
 	// This does not work because C unions are silly
 	// return (union grug_value)res;
 	union grug_value result_real;
-	// TODO: this assumes id is the full size of the union
-	result_real._id = res._id;
+	assert(sizeof(union grug_value) == sizeof(union test_grug_value));
+	memcpy(&result_real, &res, sizeof(union grug_value));
 	return result_real;
 }
 
