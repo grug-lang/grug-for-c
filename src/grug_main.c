@@ -124,9 +124,11 @@ void grug_set_fast_mode(struct grug_state* gst, bool fast) {
 	(void)fast;
 	// TODO: implement
 }
-bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, game_fn fn) {
+
+bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn) {
 	(void)gst;
 	(void)game_fn_name;
+	(void)fn_data;
 	(void)fn;
 	// TODO: implement
 	return false;

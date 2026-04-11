@@ -52,7 +52,7 @@ struct grug_entity {
 	void* data;
 };
 
-typedef union grug_value (*game_fn)(struct grug_state* gst, const union grug_value[]);
+typedef union grug_value (*game_fn)(struct grug_state* gst, void* data, const union grug_value[]);
 
 enum grug_error_type_enum {
 	GRUG_ERROR_TYPE_NONE = 0,
@@ -477,7 +477,7 @@ struct grug_error grug_get_error(struct grug_state* gst);
 // Reasons for failure include but are not limited to 
 // 	- function was not defined in `mod_api.json`. 
 // 	- function has already been registered
-bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, game_fn fn);
+bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn);
 
 // Returns true if all game functions defined in mod_api.json are registered
 bool grug_all_game_functions_registered(struct grug_state* gst);
