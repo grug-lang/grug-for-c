@@ -83,6 +83,23 @@ struct grug_error {
 	struct grug_file_location file;
 };
 
+enum grug_callstack_entry_type_enum {
+	GRUG_CALLSTACK_ENTRY_TYPE_GAME_FN,
+	GRUG_CALLSTACK_ENTRY_TYPE_ON_FN,
+};
+
+typedef uint32_t grug_callstack_entry_type;
+
+struct grug_callstack_entry {
+	grug_callstack_entry_type type;
+	struct grug_string fn_name;
+};
+
+struct grug_callstack {
+	struct grug_callstack_entry* entries;
+	size_t num_entries;
+};
+
 struct grug_updates_list {
 	size_t count;
 	struct grug_file* updates;
@@ -470,6 +487,8 @@ struct grug_init_settings grug_default_settings(void);
 struct grug_state* grug_init(struct grug_init_settings settings, struct grug_error* out_error);
 
 struct grug_error grug_get_error(struct grug_state* gst);
+
+struct grug_callstack grug_get_callstack(struct grug_state* gst);
 
 // returns true if registration is successful
 // returns false if not.
