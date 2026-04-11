@@ -1,4 +1,5 @@
 // Nasty, Disgusting, Evil macro tomfoolery
+#include "grug_main.h"
 #define grug_value test_grug_value
 #define game_fn test_game_fn
 #define grug_number test_grug_number
@@ -88,6 +89,13 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 
 grug_entity_id g_entity = 0;
 
+struct grug_file_id {
+	grug_file_id id;
+	struct grug_file_id* pnext;
+};
+
+struct grug_file_id* g_file_wrappers;
+
 struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char* file_path, const char** error_out) {
 	grug_file_id res = grug_compile_file(state, file_path);
 	if(!res) {
@@ -95,8 +103,12 @@ struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char
 		*error_out = e.message.ptr;
 		return 0;
 	}
-	// TODO: This assumes a pointer is big enough to hold the ID, which breaks on anything but 64 bit platforms
-	return (void*)(uintptr_t)res;
+	// TODO: maybe try to see if we already have this id and not allocate a new test wrapper for it every time
+	struct grug_file_id* res_ptr = malloc(sizeof(grug_file_id));
+	res_ptr->id = res;
+	res_ptr->pnext = g_file_wrappers;
+	g_file_wrappers = res_ptr;
+	return res_ptr;
 }
 
 void impl_init_globals(struct grug_state* state, struct grug_file_id* file_id) {
@@ -104,7 +116,7 @@ void impl_init_globals(struct grug_state* state, struct grug_file_id* file_id) {
 	if(g_entity) {
 		grug_deinit_entity(state, g_entity);
 	}
-	g_entity = grug_create_entity(state, (grug_file_id)(uintptr_t)file_id, 4);
+	g_entity = grug_create_entity(state, file_id->id, 4);
 }
 
 void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id, const char* fn_name, const union test_grug_value* args, size_t args_count) {
@@ -197,6 +209,11 @@ struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* 
 }
 
 void impl_destroy_grug_state(struct grug_state* state) {
+	while(g_file_wrappers) {
+		struct grug_file_id* next = g_file_wrappers->pnext;
+		free(g_file_wrappers);
+		g_file_wrappers = next;
+	}
 	grug_deinit(state);
 }
 
