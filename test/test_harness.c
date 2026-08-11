@@ -47,59 +47,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TODO(bluesillybeard): isn't this function already implemented somewhere else? Maybe it should be moved to a file utilities somewhere.
-static char* read_all_contents(char const* file_path, size_t* out_len) {
-	struct block {
-		char data[1024];
-		size_t data_len;
-		struct block* pnext;
-	};
-
-	struct block* first = 0;
-	struct block* last = 0;
-	size_t total_size = 0;
-
-	FILE* file = fopen(file_path, "rb");
-
-	if(!file) {
-		if(out_len) {
-			*out_len = 0;
-		}
-		return NULL;
-	}
-
-	first = malloc(sizeof(struct block));
-
-	first->data_len = fread(first->data, 1, 1024, file);
-	total_size += first->data_len;
-
-	last = first;
-
-	while(!feof(file)) {
-		struct block* new = malloc(sizeof(struct block));
-		last->pnext = new;
-		last = new;
-		last->data_len = fread(last->data, 1, 1024, file);
-		total_size += last->data_len;
-	}
-
-	(void)fclose(file);
-
-	char* data = malloc(total_size + 1);
-	size_t data_written = 0;
-	while(first) {
-		memcpy(data + data_written, first->data, first->data_len);
-		data_written += first->data_len;
-		struct block* next = first->pnext;
-		free(first);
-		first = next;
-	}
-	if(out_len) {
-		*out_len = total_size;
-	}
-	return data;
-}
-
 struct grug_file_id {
 	grug_file_id id;
 	struct grug_file_id* pnext;
