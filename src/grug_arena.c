@@ -74,7 +74,7 @@ void* grug_arena_allocate_aligned(struct grug_arena* me, size_t size, size_t ali
     // align the spot forward
     uintptr_t return_me = ((first_free_spot + alignment - 1) / alignment) * alignment;
     me->last_block_used += size + (return_me - first_free_spot);
-    return (void*)return_me; //NOLINT: performance is fine here mate
+    return (void*)return_me;
 }
 
 void* grug_arena_reallocate(struct grug_arena* me, void* ptr, size_t size, size_t new_size) {
@@ -104,7 +104,7 @@ void grug_arena_free(struct grug_arena* me, void* ptr, size_t size) {
     }
 }
 
-void grug_arena_reset(struct grug_arena* me, size_t keep) { //NOLINT: yes we all know how complex this function is, deal with it
+void grug_arena_reset(struct grug_arena* me, size_t keep) {
     // Move all of the blocks to the clear list to start
     struct grug_arena_block* block = me->blocks;
     while(block) {

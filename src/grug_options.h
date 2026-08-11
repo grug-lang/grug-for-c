@@ -3,7 +3,7 @@
 #ifdef GRUG_MALLOC_HEADER
 	#include GRUG_MALLOC_HEADER
 #else
-	#include <malloc.h>
+	#include <malloc.h> //NOLINT: need malloc
 #endif
 
 #ifndef GRUG_MALLOC

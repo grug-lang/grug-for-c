@@ -6,9 +6,9 @@ extern "C" {
 
 #include "grug_arena.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 typedef uint64_t grug_id;
 
@@ -272,7 +272,7 @@ enum grug_expr_type_enum {
 };
 typedef uint32_t grug_expr_type;
 
-// TODO: add location info to expressions
+// TODO(bluesillybeard): add location info to expressions
 struct grug_expr {
 	struct grug_type result_type; /* should be undetermined before type checking and filled in afterwards */
 
@@ -472,9 +472,9 @@ struct grug_backend {
 	struct grug_backend_vtable* vtable;
 };
 
-// TODO: This should probably be implementation specific
+// TODO(bluesillybeard): This should probably be implementation specific
 struct grug_init_settings {
-	// TODO: We probably want a way to define the mod_api as a string (at least for prototyping)
+	// TODO(bluesillybeard): We probably want a way to define the mod_api as a string (at least for prototyping)
 	char const* mod_api_path;
 	char const* mods_dir_path;
 	struct grug_runtime_error_handler runtime_error_handler;
@@ -496,7 +496,7 @@ struct grug_callstack grug_get_callstack(struct grug_state* gst);
 // Reasons for failure include but are not limited to 
 // 	- function was not defined in `mod_api.json`. 
 // 	- function has already been registered
-bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn);
+bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn_ptr);
 
 // Returns true if all game functions defined in mod_api.json are registered
 bool grug_all_game_functions_registered(struct grug_state* gst);
@@ -512,7 +512,7 @@ grug_file_id grug_compile_file(struct grug_state* gst, const char* path);
 
 // Compile a file from a string. Useful for prototypeing or for built in scripts
 // If it overlaps with a path on the actual filesystem, it is given the same id as that path
-grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path, char* file_text);
+grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path, char const* file_text);
 
 // Compiles and inserts all grug files in the mods directory
 const struct grug_mod_dir* grug_get_mods(struct grug_state* gst);
@@ -526,7 +526,7 @@ grug_file_id grug_entity_get_file_id(struct grug_state* gst, grug_entity_id enti
 // Gets the entity data of an entity, or NULL if the ID given isn't an entity or doesn't exist.
 struct grug_entity* grug_entity_get_data(struct grug_state* gst, grug_entity_id entity);
 
-// Destroy the data associated with an entity. Does nothing if called on a non-existent entity. TODO: should this have an error?
+// Destroy the data associated with an entity. Does nothing if called on a non-existent entity. TODO(bluesillybeard): should this have an error?
 void grug_deinit_entity(struct grug_state* gst, grug_entity_id entity);
 
 /// The values returned are entirely allocated temporarily and are 'freed' when grug_update is called again.
@@ -555,10 +555,10 @@ void grug_game_fn_runtime_error(struct grug_state* gst, char const* message);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-static inline union grug_value GRUG_ARG_NUMBER(double v)      {union grug_value r; r._number = v; return r;}
-static inline union grug_value GRUG_ARG_BOOL(bool v)          {union grug_value r; r._bool = v  ; return r;}
-static inline union grug_value GRUG_ARG_STRING(char const* v) {union grug_value r; r._string = v; return r;}
-static inline union grug_value GRUG_ARG_ID(grug_object_id v)         {union grug_value r; r._id = v    ; return r;}
+static inline union grug_value GRUG_ARG_NUMBER(double value)      {union grug_value grug_value; grug_value._number = value; return grug_value;}
+static inline union grug_value GRUG_ARG_BOOL(bool value)          {union grug_value grug_value; grug_value._bool = value  ; return grug_value;}
+static inline union grug_value GRUG_ARG_STRING(char const* value) {union grug_value grug_value; grug_value._string = value; return grug_value;}
+static inline union grug_value GRUG_ARG_ID(grug_object_id value)  {union grug_value grug_value; grug_value._id = value    ; return grug_value;}
 #pragma GCC diagnostic pop
 
 // This is basically a wrapper of malloc, but it's here to allow for a sensible alloc -> free lifetime with a pair of functions

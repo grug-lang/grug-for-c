@@ -1,0 +1,30 @@
+WarningsAsErrors: True
+# this config follows the "enable everything and remove what we do not need" philosophy of linting.
+Checks: '*,
+    -altera*,
+    -bugprone-easily-swappable-parameters,
+    -readability-magic-numbers,
+    -readability-else-after-return,
+    -cppcoreguidelines-avoid-magic-numbers,
+    -llvmlibc-restrict-system-libc-headers,
+    -llvm-else-after-return,
+    -misc-confusable-identifiers,
+# This flags memcpy as unsafe which is super annoying because we do not have access to memcpy_s (we are on C99, not C11) ,
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+# we know how to read, thanks ,
+    -readability-function-cognitive-complexity,
+# We do our own profiling thanks ,
+    -performance-no-int-to-ptr,
+# clang does not realize pragma-once counts as a header guard TODO(bluesillybeard) is there an issue to track this when it gets fixed? ,
+    -llvm-header-guard,
+# This recommends using flag `e` instead of `rb` but `e` is not part of the C standard, nor do we need to worry about `exec` being called out of nowhere. ,
+    -android-cloexec-fopen,
+    -cppcoreguidelines-macro-to-enum,modernize-macro-to-enum,
+    -modernize-macro-to-enum,
+# This keeps reporting false positives. We like this one but the fact that it has false positives makes it unusable. ,
+    -bugprone-branch-clone,
+    '
+CheckOptions:
+    readability-identifier-length.IgnoredParameterNames: 'x|y|z|me|i'
+    readability-identifier-length.IgnoredVariableNames: 'x|y|z|me|i'
+

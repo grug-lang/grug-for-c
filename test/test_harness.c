@@ -29,13 +29,14 @@ typedef GRUG_TYPE_ON_FN_ID TEST_GRUG_TYPE_ON_FN_ID;
 #undef GRUG_TYPE_ID
 #undef GRUG_TYPE_ON_FN_ID
 
-#include <grug.h>
 #include <alloca.h>
+#include <assert.h>
+#include <grug.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
+// TODO(bluesillybeard): isn't this function already implemented somewhere else? Maybe it should be moved to a file utilities somewhere.
 static char* read_all_contents(char const* file_path, size_t* out_len) {
 	struct block {
 		char data[1024];
@@ -43,13 +44,13 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 		struct block* pnext;
 	};
 
-	struct block* first;
-	struct block* last;
+	struct block* first = 0;
+	struct block* last = 0;
 	size_t total_size = 0;
 
-	FILE* f = fopen(file_path, "rb");
+	FILE* file = fopen(file_path, "rb");
 
-	if(!f) {
+	if(!file) {
 		if(out_len) {
 			*out_len = 0;
 		}
@@ -58,20 +59,20 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 
 	first = malloc(sizeof(struct block));
 
-	first->data_len = fread(first->data, 1, 1024, f);
+	first->data_len = fread(first->data, 1, 1024, file);
 	total_size += first->data_len;
 
 	last = first;
 
-	while(!feof(f)) {
+	while(!feof(file)) {
 		struct block* new = malloc(sizeof(struct block));
 		last->pnext = new;
 		last = new;
-		last->data_len = fread(last->data, 1, 1024, f);
+		last->data_len = fread(last->data, 1, 1024, file);
 		total_size += last->data_len;
 	}
 
-	fclose(f);
+	(void)fclose(file);
 
 	char* data = malloc(total_size + 1);
 	size_t data_written = 0;
@@ -88,23 +89,23 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 	return data;
 }
 
-grug_entity_id g_entity = 0;
+grug_entity_id g_entity = 0; // NOLINT: this cannot be const
 
 struct grug_file_id {
 	grug_file_id id;
 	struct grug_file_id* pnext;
 };
 
-struct grug_file_id* g_file_wrappers;
+struct grug_file_id* g_file_wrappers; // NOLINT: this cannot be const
 
 struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char* file_path, const char** error_out) {
 	grug_file_id res = grug_compile_file(state, file_path);
 	if(!res) {
-		struct grug_error e = grug_get_error(state);
-		*error_out = e.message.ptr;
+		struct grug_error error = grug_get_error(state);
+		*error_out = error.message.ptr;
 		return 0;
 	}
-	// TODO: maybe try to see if we already have this id and not allocate a new test wrapper for it every time
+	// TODO(bluesillybeard): maybe try to see if we already have this id and not allocate a new test wrapper for it every time
 	struct grug_file_id* res_ptr = malloc(sizeof(struct grug_file_id));
 	res_ptr->id = res;
 	res_ptr->pnext = g_file_wrappers;
@@ -121,7 +122,7 @@ void impl_init_globals(struct grug_state* state, struct grug_file_id* file_id) {
 }
 
 void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id, const char* fn_name, const union test_grug_value* args, size_t args_count) {
-	// TODO Um, maybe it would be better to not search the entire export fn database every single time to call a function
+	// TODO(bluesillybeard): maybe it would be better to not search the entire export fn database every single time to call a function
 	struct grug_on_fns fns = grug_get_fn_ids(state);
 	for(size_t index=0; index<fns.count; index += 1) {
 		struct grug_on_fn_entry entry = fns.entries[index];
@@ -136,7 +137,7 @@ void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id,
 
 bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_path, const char *output_json_path) {
 	(void)state;
-	size_t grug_len;
+	size_t grug_len = 0;
 	char* grug_contents = read_all_contents(input_grug_path, &grug_len);
 	if(!grug_contents) {
 		return true;
@@ -153,8 +154,9 @@ bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_pat
 		free(grug_contents);
 		return true;
 	}
-	fwrite(json.ptr, 1, json.len, out);
-	fclose(out);
+	// TODO(bluesillybeard): should probably check for error here
+	(void)fwrite(json.ptr, 1, json.len, out);
+	(void)fclose(out);
 	grug_free_string(json);
 	free(grug_contents);
 	return false;
@@ -162,7 +164,7 @@ bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_pat
 
 bool impl_generate_file_from_json(struct grug_state* state, const char *input_json_path, const char *output_grug_path) {
 	(void)state;
-	size_t grug_len;
+	size_t grug_len = 0;
 	char* json_contents = read_all_contents(input_json_path, &grug_len);
 	if(!json_contents) {
 		return true;
@@ -179,8 +181,9 @@ bool impl_generate_file_from_json(struct grug_state* state, const char *input_js
 		free(json_contents);
 		return true;
 	}
-	fwrite(grug.ptr, 1, grug.len, out);
-	fclose(out);
+	//TODO(bluesillybeard) should probably check for write error here
+	(void)fwrite(grug.ptr, 1, grug.len, out);
+	(void)fclose(out);
 	grug_free_string(grug);
 	free(json_contents);
 	return false;
@@ -206,53 +209,53 @@ static union grug_value test_game_fn_wrapper(struct grug_state* gst, void* fn_da
 	return result_real;
 }
 
-struct test_game_fn_data game_fn_nothing_dat = {.fn = game_fn_nothing, .name = "game_fn_nothing"};
-struct test_game_fn_data game_fn_magic_dat = {.fn = game_fn_magic, .name = "game_fn_magic"};
-struct test_game_fn_data game_fn_initialize_dat = {.fn = game_fn_initialize, .name = "game_fn_initialize"};
-struct test_game_fn_data game_fn_initialize_bool_dat = {.fn = game_fn_initialize_bool, .name = "game_fn_initialize_bool"};
-struct test_game_fn_data game_fn_identity_dat = {.fn = game_fn_identity, .name = "game_fn_identity"};
-struct test_game_fn_data game_fn_max_dat = {.fn = game_fn_max, .name = "game_fn_max"};
-struct test_game_fn_data game_fn_say_dat = {.fn = game_fn_say, .name = "game_fn_say"};
-struct test_game_fn_data game_fn_sin_dat = {.fn = game_fn_sin, .name = "game_fn_sin"};
-struct test_game_fn_data game_fn_cos_dat = {.fn = game_fn_cos, .name = "game_fn_cos"};
-struct test_game_fn_data game_fn_mega_dat = {.fn = game_fn_mega, .name = "game_fn_mega"};
-struct test_game_fn_data game_fn_get_false_dat = {.fn = game_fn_get_false, .name = "game_fn_get_false"};
-struct test_game_fn_data game_fn_set_is_happy_dat = {.fn = game_fn_set_is_happy, .name = "game_fn_set_is_happy"};
-struct test_game_fn_data game_fn_mega_f32_dat = {.fn = game_fn_mega_f32, .name = "game_fn_mega_f32"};
-struct test_game_fn_data game_fn_mega_i32_dat = {.fn = game_fn_mega_i32, .name = "game_fn_mega_i32"};
-struct test_game_fn_data game_fn_draw_dat = {.fn = game_fn_draw, .name = "game_fn_draw"};
-struct test_game_fn_data game_fn_blocked_alrm_dat = {.fn = game_fn_blocked_alrm, .name = "game_fn_blocked_alrm"};
-struct test_game_fn_data game_fn_spawn_dat = {.fn = game_fn_spawn, .name = "game_fn_spawn"};
-struct test_game_fn_data game_fn_spawn_d_dat = {.fn = game_fn_spawn_d, .name = "game_fn_spawn_d"};
-struct test_game_fn_data game_fn_has_resource_dat = {.fn = game_fn_has_resource, .name = "game_fn_has_resource"};
-struct test_game_fn_data game_fn_has_entity_dat = {.fn = game_fn_has_entity, .name = "game_fn_has_entity"};
-struct test_game_fn_data game_fn_has_string_dat = {.fn = game_fn_has_string, .name = "game_fn_has_string"};
-struct test_game_fn_data game_fn_get_opponent_dat = {.fn = game_fn_get_opponent, .name = "game_fn_get_opponent"};
-struct test_game_fn_data game_fn_get_os_dat = {.fn = game_fn_get_os, .name = "game_fn_get_os"};
-struct test_game_fn_data game_fn_set_d_dat = {.fn = game_fn_set_d, .name = "game_fn_set_d"};
-struct test_game_fn_data game_fn_set_opponent_dat = {.fn = game_fn_set_opponent, .name = "game_fn_set_opponent"};
-struct test_game_fn_data game_fn_motherload_dat = {.fn = game_fn_motherload, .name = "game_fn_motherload"};
-struct test_game_fn_data game_fn_motherload_subless_dat = {.fn = game_fn_motherload_subless, .name = "game_fn_motherload_subless"};
-struct test_game_fn_data game_fn_offset_32_bit_f32_dat = {.fn = game_fn_offset_32_bit_f32, .name = "game_fn_offset_32_bit_f32"};
-struct test_game_fn_data game_fn_offset_32_bit_i32_dat = {.fn = game_fn_offset_32_bit_i32, .name = "game_fn_offset_32_bit_i32"};
-struct test_game_fn_data game_fn_offset_32_bit_string_dat = {.fn = game_fn_offset_32_bit_string, .name = "game_fn_offset_32_bit_string"};
-struct test_game_fn_data game_fn_talk_dat = {.fn = game_fn_talk, .name = "game_fn_talk"};
-struct test_game_fn_data game_fn_get_position_dat = {.fn = game_fn_get_position, .name = "game_fn_get_position"};
-struct test_game_fn_data game_fn_set_position_dat = {.fn = game_fn_set_position, .name = "game_fn_set_position"};
-struct test_game_fn_data game_fn_cause_game_fn_error_dat = {.fn = game_fn_cause_game_fn_error, .name = "game_fn_cause_game_fn_error"};
-struct test_game_fn_data game_fn_call_on_b_fn_dat = {.fn = game_fn_call_on_b_fn, .name = "game_fn_call_on_b_fn"};
-struct test_game_fn_data game_fn_store_dat = {.fn = game_fn_store, .name = "game_fn_store"};
-struct test_game_fn_data game_fn_print_csv_dat = {.fn = game_fn_print_csv, .name = "game_fn_print_csv"};
-struct test_game_fn_data game_fn_retrieve_dat = {.fn = game_fn_retrieve, .name = "game_fn_retrieve"};
-struct test_game_fn_data game_fn_box_number_dat = {.fn = game_fn_box_number, .name = "game_fn_box_number"};
+struct test_game_fn_data const game_fn_nothing_dat = {.fn = game_fn_nothing, .name = "game_fn_nothing"};
+struct test_game_fn_data const game_fn_magic_dat = {.fn = game_fn_magic, .name = "game_fn_magic"};
+struct test_game_fn_data const game_fn_initialize_dat = {.fn = game_fn_initialize, .name = "game_fn_initialize"};
+struct test_game_fn_data const game_fn_initialize_bool_dat = {.fn = game_fn_initialize_bool, .name = "game_fn_initialize_bool"};
+struct test_game_fn_data const game_fn_identity_dat = {.fn = game_fn_identity, .name = "game_fn_identity"};
+struct test_game_fn_data const game_fn_max_dat = {.fn = game_fn_max, .name = "game_fn_max"};
+struct test_game_fn_data const game_fn_say_dat = {.fn = game_fn_say, .name = "game_fn_say"};
+struct test_game_fn_data const game_fn_sin_dat = {.fn = game_fn_sin, .name = "game_fn_sin"};
+struct test_game_fn_data const game_fn_cos_dat = {.fn = game_fn_cos, .name = "game_fn_cos"};
+struct test_game_fn_data const game_fn_mega_dat = {.fn = game_fn_mega, .name = "game_fn_mega"};
+struct test_game_fn_data const game_fn_get_false_dat = {.fn = game_fn_get_false, .name = "game_fn_get_false"};
+struct test_game_fn_data const game_fn_set_is_happy_dat = {.fn = game_fn_set_is_happy, .name = "game_fn_set_is_happy"};
+struct test_game_fn_data const game_fn_mega_f32_dat = {.fn = game_fn_mega_f32, .name = "game_fn_mega_f32"};
+struct test_game_fn_data const game_fn_mega_i32_dat = {.fn = game_fn_mega_i32, .name = "game_fn_mega_i32"};
+struct test_game_fn_data const game_fn_draw_dat = {.fn = game_fn_draw, .name = "game_fn_draw"};
+struct test_game_fn_data const game_fn_blocked_alrm_dat = {.fn = game_fn_blocked_alrm, .name = "game_fn_blocked_alrm"};
+struct test_game_fn_data const game_fn_spawn_dat = {.fn = game_fn_spawn, .name = "game_fn_spawn"};
+struct test_game_fn_data const game_fn_spawn_d_dat = {.fn = game_fn_spawn_d, .name = "game_fn_spawn_d"};
+struct test_game_fn_data const game_fn_has_resource_dat = {.fn = game_fn_has_resource, .name = "game_fn_has_resource"};
+struct test_game_fn_data const game_fn_has_entity_dat = {.fn = game_fn_has_entity, .name = "game_fn_has_entity"};
+struct test_game_fn_data const game_fn_has_string_dat = {.fn = game_fn_has_string, .name = "game_fn_has_string"};
+struct test_game_fn_data const game_fn_get_opponent_dat = {.fn = game_fn_get_opponent, .name = "game_fn_get_opponent"};
+struct test_game_fn_data const game_fn_get_os_dat = {.fn = game_fn_get_os, .name = "game_fn_get_os"};
+struct test_game_fn_data const game_fn_set_d_dat = {.fn = game_fn_set_d, .name = "game_fn_set_d"};
+struct test_game_fn_data const game_fn_set_opponent_dat = {.fn = game_fn_set_opponent, .name = "game_fn_set_opponent"};
+struct test_game_fn_data const game_fn_motherload_dat = {.fn = game_fn_motherload, .name = "game_fn_motherload"};
+struct test_game_fn_data const game_fn_motherload_subless_dat = {.fn = game_fn_motherload_subless, .name = "game_fn_motherload_subless"};
+struct test_game_fn_data const game_fn_offset_32_bit_f32_dat = {.fn = game_fn_offset_32_bit_f32, .name = "game_fn_offset_32_bit_f32"};
+struct test_game_fn_data const game_fn_offset_32_bit_i32_dat = {.fn = game_fn_offset_32_bit_i32, .name = "game_fn_offset_32_bit_i32"};
+struct test_game_fn_data const game_fn_offset_32_bit_string_dat = {.fn = game_fn_offset_32_bit_string, .name = "game_fn_offset_32_bit_string"};
+struct test_game_fn_data const game_fn_talk_dat = {.fn = game_fn_talk, .name = "game_fn_talk"};
+struct test_game_fn_data const game_fn_get_position_dat = {.fn = game_fn_get_position, .name = "game_fn_get_position"};
+struct test_game_fn_data const game_fn_set_position_dat = {.fn = game_fn_set_position, .name = "game_fn_set_position"};
+struct test_game_fn_data const game_fn_cause_game_fn_error_dat = {.fn = game_fn_cause_game_fn_error, .name = "game_fn_cause_game_fn_error"};
+struct test_game_fn_data const game_fn_call_on_b_fn_dat = {.fn = game_fn_call_on_b_fn, .name = "game_fn_call_on_b_fn"};
+struct test_game_fn_data const game_fn_store_dat = {.fn = game_fn_store, .name = "game_fn_store"};
+struct test_game_fn_data const game_fn_print_csv_dat = {.fn = game_fn_print_csv, .name = "game_fn_print_csv"};
+struct test_game_fn_data const game_fn_retrieve_dat = {.fn = game_fn_retrieve, .name = "game_fn_retrieve"};
+struct test_game_fn_data const game_fn_box_number_dat = {.fn = game_fn_box_number, .name = "game_fn_box_number"};
 
 static void impl_grug_tests_runtime_error_handler(struct grug_state* gst, void* obj) {
 	(void)obj;
-	struct grug_error e = grug_get_error(gst);
+	struct grug_error error = grug_get_error(gst);
 
 	struct grug_callstack calls = grug_get_callstack(gst);
 	
-	char const* on_fn_name;
+	char const* on_fn_name = 0;
 	for(size_t i=1; i <= calls.num_entries; i += 1) {
 		if(calls.entries[calls.num_entries - i].type == GRUG_CALLSTACK_ENTRY_TYPE_ON_FN) {
 			on_fn_name = calls.entries[calls.num_entries - 1].fn_name.ptr;
@@ -263,29 +266,29 @@ static void impl_grug_tests_runtime_error_handler(struct grug_state* gst, void* 
 		on_fn_name = "Unknown";
 	}
 	
-	switch(e.error_type) {
+	switch(error.error_type) {
 		case GRUG_ERROR_TYPE_NONE: {
 			grug_tests_runtime_error_handler("Unknown", GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, "Unknown");
 			return;
 		}
 		case GRUG_ERROR_TYPE_INIT: {
-			grug_tests_runtime_error_handler(e.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, "Unknown");
+			grug_tests_runtime_error_handler(error.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, "Unknown");
 			return;
 		}
 		case GRUG_ERROR_TYPE_COMPILE: {
-			grug_tests_runtime_error_handler(e.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, e.file.file_name.ptr);
+			grug_tests_runtime_error_handler(error.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, error.file.file_name.ptr);
 			return;
 		}
 		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW: {
-			grug_tests_runtime_error_handler(e.message.ptr, GRUG_ON_FN_STACK_OVERFLOW, on_fn_name, e.file.file_name.ptr);
+			grug_tests_runtime_error_handler(error.message.ptr, GRUG_ON_FN_STACK_OVERFLOW, on_fn_name, error.file.file_name.ptr);
 			return;
 		}
 		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED: {
-			grug_tests_runtime_error_handler(e.message.ptr, GRUG_ON_FN_TIME_LIMIT_EXCEEDED, on_fn_name, e.file.file_name.ptr);
+			grug_tests_runtime_error_handler(error.message.ptr, GRUG_ON_FN_TIME_LIMIT_EXCEEDED, on_fn_name, error.file.file_name.ptr);
 			return;
 		}
 		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
-			grug_tests_runtime_error_handler(e.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, e.file.file_name.ptr);
+			grug_tests_runtime_error_handler(error.message.ptr, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, error.file.file_name.ptr);
 			return;
 		}
 		default: {
@@ -294,7 +297,7 @@ static void impl_grug_tests_runtime_error_handler(struct grug_state* gst, void* 
 	}
 }
 
-struct grug_runtime_error_handler error_handler = {
+struct grug_runtime_error_handler const error_handler = {
 	.drop_fn = 0,
 	.handler_fn = impl_grug_tests_runtime_error_handler,
 	.user_data = 0,
@@ -305,53 +308,53 @@ struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* 
 	settings.mod_api_path = mod_api_path;
 	settings.mods_dir_path = mods_dir;
 	settings.runtime_error_handler = error_handler;
-	struct grug_error e;
-	struct grug_state* gst = grug_init(settings, &e);
+	struct grug_error error;
+	struct grug_state* gst = grug_init(settings, &error);
 	if(!gst) {
-		fprintf(stderr, "Failed to create state: %s", e.message.ptr);
-		grug_free_error(e);
+		(void)fprintf(stderr, "Failed to create state: %s", error.message.ptr);
+		grug_free_error(error);
 		return 0;
 	}
 	// Register... well, everything
-	grug_register_game_fn(gst, "game_fn_nothing", &game_fn_nothing_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_magic", &game_fn_magic_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_initialize", &game_fn_initialize_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_initialize_bool", &game_fn_initialize_bool_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_identity", &game_fn_identity_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_max", &game_fn_max_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_say", &game_fn_say_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_sin", &game_fn_sin_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_cos", &game_fn_cos_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_mega", &game_fn_mega_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_get_false", &game_fn_get_false_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_set_is_happy", &game_fn_set_is_happy_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_mega_f32", &game_fn_mega_f32_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_mega_i32", &game_fn_mega_i32_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_draw", &game_fn_draw_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_blocked_alrm", &game_fn_blocked_alrm_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_spawn", &game_fn_spawn_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_spawn_d", &game_fn_spawn_d_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_has_resource", &game_fn_has_resource_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_has_entity", &game_fn_has_entity_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_has_string", &game_fn_has_string_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_get_opponent", &game_fn_get_opponent_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_get_os", &game_fn_get_os_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_set_d", &game_fn_set_d_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_set_opponent", &game_fn_set_opponent_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_motherload", &game_fn_motherload_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_motherload_subless", &game_fn_motherload_subless_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_offset_32_bit_f32", &game_fn_offset_32_bit_f32_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_offset_32_bit_i32", &game_fn_offset_32_bit_i32_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_offset_32_bit_string", &game_fn_offset_32_bit_string_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_talk", &game_fn_talk_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_get_position", &game_fn_get_position_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_set_position", &game_fn_set_position_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_cause_game_fn_error", &game_fn_cause_game_fn_error_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_call_on_b_fn", &game_fn_call_on_b_fn_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_store", &game_fn_store_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_print_csv", &game_fn_print_csv_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_retrieve", &game_fn_retrieve_dat, test_game_fn_wrapper);
-	grug_register_game_fn(gst, "game_fn_box_number", &game_fn_box_number_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_nothing", (void*)&game_fn_nothing_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_magic", (void*)&game_fn_magic_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_initialize", (void*)&game_fn_initialize_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_initialize_bool", (void*)&game_fn_initialize_bool_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_identity", (void*)&game_fn_identity_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_max", (void*)&game_fn_max_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_say", (void*)&game_fn_say_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_sin", (void*)&game_fn_sin_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_cos", (void*)&game_fn_cos_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_mega", (void*)&game_fn_mega_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_get_false", (void*)&game_fn_get_false_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_set_is_happy", (void*)&game_fn_set_is_happy_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_mega_f32", (void*)&game_fn_mega_f32_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_mega_i32", (void*)&game_fn_mega_i32_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_draw", (void*)&game_fn_draw_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_blocked_alrm", (void*)&game_fn_blocked_alrm_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_spawn", (void*)&game_fn_spawn_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_spawn_d", (void*)&game_fn_spawn_d_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_has_resource", (void*)&game_fn_has_resource_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_has_entity", (void*)&game_fn_has_entity_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_has_string", (void*)&game_fn_has_string_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_get_opponent", (void*)&game_fn_get_opponent_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_get_os", (void*)&game_fn_get_os_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_set_d", (void*)&game_fn_set_d_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_set_opponent", (void*)&game_fn_set_opponent_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_motherload", (void*)&game_fn_motherload_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_motherload_subless", (void*)&game_fn_motherload_subless_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_offset_32_bit_f32", (void*)&game_fn_offset_32_bit_f32_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_offset_32_bit_i32", (void*)&game_fn_offset_32_bit_i32_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_offset_32_bit_string", (void*)&game_fn_offset_32_bit_string_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_talk", (void*)&game_fn_talk_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_get_position", (void*)&game_fn_get_position_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_set_position", (void*)&game_fn_set_position_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_cause_game_fn_error", (void*)&game_fn_cause_game_fn_error_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_call_on_b_fn", (void*)&game_fn_call_on_b_fn_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_store", (void*)&game_fn_store_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_print_csv", (void*)&game_fn_print_csv_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_retrieve", (void*)&game_fn_retrieve_dat, test_game_fn_wrapper);
+	grug_register_game_fn(gst, "game_fn_box_number", (void*)&game_fn_box_number_dat, test_game_fn_wrapper);
 	return gst;
 }
 
@@ -364,7 +367,7 @@ void impl_destroy_grug_state(struct grug_state* state) {
 	grug_deinit(state);
 }
 
-struct grug_state_vtable vtable = {
+struct grug_state_vtable const vtable = {
 	.create_grug_state = impl_create_grug_state,
 	.destroy_grug_state = impl_destroy_grug_state,
 	.compile_grug_file = impl_compile_grug_file,

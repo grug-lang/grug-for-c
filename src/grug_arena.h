@@ -13,6 +13,7 @@
 //     - this decision was made on the assumption that the underlying allocator is optimized for a specific large allocation size (which is the case for a raw OS page alloc)
 
 // TODO(bluesillybeard): Make some proper tests for this arena allocator so we know it works reliably and consistently
+// TODO(bluesillybeard): In fact I have already copy-pasted this arena to three different projects, it probably belongs in its own repo with its own testing suite and CI.
 
 // memory block, minus two size_t's worth of bytes for some metadata. Effectively a linked list.
 struct grug_arena_block {

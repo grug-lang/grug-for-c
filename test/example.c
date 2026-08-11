@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <inttypes.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include <grug.h>
 #include <string.h>
@@ -25,7 +25,7 @@ bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const*
             printf("File %s has an error: %s\n", file->name.ptr, file->error->message.ptr);
         }
 
-        if(strcmp(file->name.ptr, name)) {
+        if(strcmp(file->name.ptr, name) == 0) {
             *out_id = file->id;
             return true;
         }
@@ -45,11 +45,11 @@ int main(void) {
     struct grug_init_settings settings = grug_default_settings();
 
     // gst "grug state" contains all of the grug library state
-    struct grug_error e;
-    struct grug_state* gst = grug_init(settings, &e);
+    struct grug_error error;
+    struct grug_state* gst = grug_init(settings, &error);
     if(!gst) {
-		fprintf(stderr, "Failed to create state: %s", e.message.ptr);
-		grug_free_error(e);
+		(void)fprintf(stderr, "Failed to create state: %s", error.message.ptr);
+		grug_free_error(error);
 		return 1;
 	}
 
@@ -59,20 +59,20 @@ int main(void) {
 
     // Grab the "ID" of the Dog::on_spawn and Dog::on_bark functions
     // This is not a normal grug object id, but a special function id
-    grug_on_fn_id on_spawn_fn_id;
+    grug_on_fn_id on_spawn_fn_id = {0};
     bool found_on_spawn = false;
-    grug_on_fn_id on_bark_fn_id;
+    grug_on_fn_id on_bark_fn_id = {0};
     bool found_on_bark = false;
     
     struct grug_on_fns on_fns = grug_get_fn_ids(gst);
     for(size_t index = 0; index < on_fns.count; ++index) {
         struct grug_on_fn_entry entry = on_fns.entries[index];
 
-        if(strcmp(entry.entity_name.ptr, "Dog")) {
-            if(strcmp(entry.on_fn_name.ptr, "on_spawn")) {
+        if(strcmp(entry.entity_name.ptr, "Dog") == 0) {
+            if(strcmp(entry.on_fn_name.ptr, "on_spawn") == 0) {
                 on_spawn_fn_id = entry.id;
                 found_on_spawn = true;
-            } else if(strcmp(entry.on_fn_name.ptr, "on_bark")) {
+            } else if(strcmp(entry.on_fn_name.ptr, "on_bark") == 0) {
                 on_bark_fn_id = entry.id;
                 found_on_bark = true;
             }
