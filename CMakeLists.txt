@@ -20,6 +20,7 @@ target_include_directories(grug PUBLIC src)
 add_executable(test_harness
     test/test_harness.c
     grug-tests/tests.c
+    grug-tests/cJSON.c
 )
 
 set_target_properties(test_harness PROPERTIES C_STANDARD 99)

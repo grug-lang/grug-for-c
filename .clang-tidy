@@ -23,6 +23,8 @@ Checks: '*,
     -modernize-macro-to-enum,
 # This keeps reporting false positives. We like this one but the fact that it has false positives makes it unusable. ,
     -bugprone-branch-clone,
+# We might need to switch away from clang-tidy because Holy Crap is it buggy as heck. This one keeps flagging false positives. Thankfully the compiler has us covered for this one anyways. ,
+    -misc-unused-parameters,
     '
 CheckOptions:
     readability-identifier-length.IgnoredParameterNames: 'x|y|z|me|i'

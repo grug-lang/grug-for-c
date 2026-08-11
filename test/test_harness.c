@@ -1,27 +1,38 @@
-// Nasty, Disgusting, Evil macro tomfoolery
-#include "grug_main.h"
+// Nasty, Disgusting, Evil tomfoolery
+// This first set adds `test_` prefix to all of the types in the tests.h header
 #define grug_value test_grug_value
 #define game_fn test_game_fn
 #define grug_number test_grug_number
 #define grug_bool test_grug_bool
 #define grug_string test_grug_string
 #define grug_id test_grug_id
+#define grug_type test_grug_type
+
+// This second set guarantees the types match, but they also need undefs later since grug-for-c uses those names for something else
+#define GRUG_TYPE_NUMBER double
+#define GRUG_TYPE_BOOL bool
+#define GRUG_TYPE_STRING const char*
+#define GRUG_TYPE_ID uint64_t
+#define GRUG_TYPE_ON_FN_ID uint64_t
 
 #include <tests.h>
 
+// Undef everything to remove the name collisions
 #undef grug_value
 #undef game_fn
 #undef grug_number
 #undef grug_bool
 #undef grug_string
 #undef grug_id
+#undef grug_type
 
-// that wasn't enough, grug tests has more name collisions that need to be resolved. They are macros so some care is needed
-typedef GRUG_TYPE_BOOL TEST_GRUG_TYPE_BOOL;
-typedef GRUG_TYPE_NUMBER TEST_GRUG_TYPE_NUMBER;
-typedef GRUG_TYPE_STRING TEST_GRUG_TYPE_STRING;
-typedef GRUG_TYPE_ID TEST_GRUG_TYPE_ID;
-typedef GRUG_TYPE_ON_FN_ID TEST_GRUG_TYPE_ON_FN_ID;
+#undef GRUG_TYPE_NUMBER
+#undef GRUG_TYPE_BOOL
+#undef GRUG_TYPE_STRING
+#undef GRUG_TYPE_ID
+#undef GRUG_TYPE_ON_FN_ID
+
+#include <grug_main.h>
 
 #undef GRUG_TYPE_BOOL
 #undef GRUG_TYPE_NUMBER
@@ -31,7 +42,7 @@ typedef GRUG_TYPE_ON_FN_ID TEST_GRUG_TYPE_ON_FN_ID;
 
 #include <alloca.h>
 #include <assert.h>
-#include <grug.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,8 +100,6 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 	return data;
 }
 
-grug_entity_id g_entity = 0; // NOLINT: this cannot be const
-
 struct grug_file_id {
 	grug_file_id id;
 	struct grug_file_id* pnext;
@@ -114,79 +123,94 @@ struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char
 	return res_ptr;
 }
 
-void impl_init_globals(struct grug_state* state, struct grug_file_id* file_id) {
-	if(g_entity) {
-		grug_deinit_entity(state, g_entity);
-	}
-	g_entity = grug_create_entity(state, file_id->id, 4);
+void impl_destroy_grug_file(struct grug_state* state, struct grug_file_id* file) {
+	(void)state;
+	(void)file;
+	// TODO(bluesillybeard): implement
 }
 
-void impl_call_export_fn(struct grug_state* state, struct grug_file_id* file_id, const char* fn_name, const union test_grug_value* args, size_t args_count) {
+struct grug_entity_id* impl_create_entity(struct grug_state* state, struct grug_file_id* file, const char** error_out) {
+	// TODO(bluesillybeard): implement
+	(void)state;
+	(void)file;
+	(void)error_out;
+	return NULL;
+}
+
+void impl_destroy_entity(struct grug_state* state, struct grug_entity_id* entity) {
+	// TODO(bluesillybeard): implement
+	(void)state;
+	(void)entity;
+}
+
+void impl_update(struct grug_state* state, const char** error_out) {
+	(void)state;
+	(void)error_out;
+	// TODO(bluesillybeard): implement
+}
+
+void impl_call_export_fn(struct grug_state* state, struct grug_entity_id* entity, const char* fn_name, const union test_grug_value* args, size_t args_count) {
+	grug_entity_id entity_id = *((grug_entity_id*)entity);
 	// TODO(bluesillybeard): maybe it would be better to not search the entire export fn database every single time to call a function
 	struct grug_on_fns fns = grug_get_fn_ids(state);
 	for(size_t index=0; index<fns.count; index += 1) {
 		struct grug_on_fn_entry entry = fns.entries[index];
 		if(strcmp(entry.on_fn_name.ptr, fn_name) == 0) {
-			assert(file_id->id == grug_entity_get_file_id(state, g_entity));
 			// The arg unions should be identical.
-			grug_call_on_function(state, g_entity, entry.id, (union grug_value*) args, args_count);
+			grug_call_on_function(state, entity_id, entry.id, (union grug_value*) args, args_count);
 			return;
 		}
 	}
 }
 
-bool impl_dump_file_to_json(struct grug_state* state, const char *input_grug_path, const char *output_json_path) {
+bool impl_grug_to_json(struct grug_state* state, const char *input_grug_buffer, char *output_json_buffer, size_t output_buffer_len) {
+	bool result = true;
 	(void)state;
-	size_t grug_len = 0;
-	char* grug_contents = read_all_contents(input_grug_path, &grug_len);
-	if(!grug_contents) {
-		return true;
+	struct grug_string input = {
+		.ptr = (char*)input_grug_buffer,
+		.len = strlen(input_grug_buffer),
+	};
+	struct grug_error error = {0};
+	struct grug_string json = grug_to_json(input, &error);
+	if(json.len == 0) {
+		result = false;
 	}
-	struct grug_error maybe_error;
-	struct grug_string json = grug_to_json((struct grug_string){.ptr = grug_contents, .len = grug_len}, &maybe_error);
-	if(!json.ptr) {
-		free(grug_contents);
-		return true;
+	size_t size = json.len + 1;
+	if(output_buffer_len < size) {
+		size = output_buffer_len;
+		result = false;
 	}
-	FILE* out = fopen(output_json_path, "wb");
-	if(!out) {
-		grug_free_string(json);
-		free(grug_contents);
-		return true;
-	}
-	// TODO(bluesillybeard): should probably check for error here
-	(void)fwrite(json.ptr, 1, json.len, out);
-	(void)fclose(out);
+
+	memcpy(output_json_buffer, json.ptr, size-1);
+	output_json_buffer[size-1] = 0;
+
 	grug_free_string(json);
-	free(grug_contents);
-	return false;
+	return result;
 }
 
-bool impl_generate_file_from_json(struct grug_state* state, const char *input_json_path, const char *output_grug_path) {
+bool impl_json_to_grug(struct grug_state* state, const char *input_json_buffer, char *output_grug_buffer, size_t output_buffer_len) {
 	(void)state;
-	size_t grug_len = 0;
-	char* json_contents = read_all_contents(input_json_path, &grug_len);
-	if(!json_contents) {
-		return true;
+	bool result = true;
+	struct grug_string input = {
+		.ptr = (char*)input_json_buffer,
+		.len = strlen(input_json_buffer),
+	};
+	struct grug_error error = {0};
+	struct grug_string grug = json_to_grug(input, &error);
+	if(grug.len == 0) {
+		result = false;
 	}
-	struct grug_error maybe_error;
-	struct grug_string grug = json_to_grug((struct grug_string){.ptr = json_contents, .len = grug_len}, &maybe_error);
-	if(!grug.ptr) {
-		free(json_contents);
-		return true;
+	size_t size = grug.len + 1;
+	if(output_buffer_len < size) {
+		size = output_buffer_len;
+		result = false;
 	}
-	FILE* out = fopen(output_grug_path, "wb");
-	if(!out) {
-		grug_free_string(grug);
-		free(json_contents);
-		return true;
-	}
-	//TODO(bluesillybeard) should probably check for write error here
-	(void)fwrite(grug.ptr, 1, grug.len, out);
-	(void)fclose(out);
+
+	memcpy(output_grug_buffer, grug.ptr, size-1);
+	output_grug_buffer[size-1] = 0;
+
 	grug_free_string(grug);
-	free(json_contents);
-	return false;
+	return result;
 }
 
 void impl_game_fn_error(struct grug_state* state, const char *message) {
@@ -303,7 +327,7 @@ struct grug_runtime_error_handler const error_handler = {
 	.user_data = 0,
 };
 
-struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* mods_dir) {
+struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* mods_dir, bool safe_mode) {
 	struct grug_init_settings settings  = grug_default_settings();
 	settings.mod_api_path = mod_api_path;
 	settings.mods_dir_path = mods_dir;
@@ -315,6 +339,7 @@ struct grug_state* impl_create_grug_state(const char* mod_api_path, const char* 
 		grug_free_error(error);
 		return 0;
 	}
+	grug_set_fast_mode(gst, !safe_mode);
 	// Register... well, everything
 	grug_register_game_fn(gst, "game_fn_nothing", (void*)&game_fn_nothing_dat, test_game_fn_wrapper);
 	grug_register_game_fn(gst, "game_fn_magic", (void*)&game_fn_magic_dat, test_game_fn_wrapper);
@@ -368,14 +393,17 @@ void impl_destroy_grug_state(struct grug_state* state) {
 }
 
 struct grug_state_vtable const vtable = {
-	.create_grug_state = impl_create_grug_state,
-	.destroy_grug_state = impl_destroy_grug_state,
-	.compile_grug_file = impl_compile_grug_file,
-	.init_globals = impl_init_globals,
-	.call_export_fn = impl_call_export_fn,
-	.dump_file_to_json = impl_dump_file_to_json,
-	.generate_file_from_json = impl_generate_file_from_json,
-	.game_fn_error = impl_game_fn_error,
+	.create_grug_state = &impl_create_grug_state,
+	.destroy_grug_state = &impl_destroy_grug_state,
+	.compile_grug_file = &impl_compile_grug_file,
+	.destroy_grug_file = &impl_destroy_grug_file,
+	.create_entity = &impl_create_entity,
+	.destroy_entity = &impl_destroy_entity,
+	.update = &impl_update,
+	.call_export_fn = &impl_call_export_fn,
+	.grug_to_json = &impl_grug_to_json,
+	.json_to_grug = &impl_json_to_grug,
+	.game_fn_error = &impl_game_fn_error,
 };
 
 int main(int argc, char** argv) {
