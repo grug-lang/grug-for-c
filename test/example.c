@@ -11,7 +11,7 @@ union grug_value game_fn_print_string(struct grug_state* gst, void* fn_dat, cons
     (void)fn_dat;
     (void)gst;
 	grug_id me_caller = args[0]._id;
-	// Error here on clang with -pedantic errors, apparantly PRIu64 is defined
+	// Error here on clang with -pedantic errors, apparently PRIu64 is defined
 	// as a non-standard format specifier
     printf("Entity %" PRIu64 " said %s\n", me_caller, args[1]._string);
     return (union grug_value){0};
@@ -86,7 +86,7 @@ int main(void) {
     }
     
     // your file object is simple a handle to the script, and isn't the script itself 
-    grug_file_id labrador_script;
+    grug_file_id labrador_script = 0;
     bool found_labrador_script = find_file(grug_get_mods(gst), &labrador_script, "labrador-Dog.grug");
 
     if(!found_labrador_script) {
