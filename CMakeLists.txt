@@ -7,7 +7,7 @@ project(grug
     LANGUAGES C
 )
 
-set(GRUG_COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror" "-pedantic-errors" "-Wconversion" "-g" "-fsanitize=address,undefined" "-Wno-unused-function")
+set(GRUG_COMPILE_OPTIONS "-Wall" "-Wextra" "-Werror" "-pedantic" "-pedantic-errors" "-Wconversion" "-g" "-fsanitize=address,undefined" "-Wno-unused-function")
 set(GRUG_LINK_OPTIONS "-fsanitize=address,undefined")
 
 add_library(grug src/grug_main.c src/grug_arena.c)
