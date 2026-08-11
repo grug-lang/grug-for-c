@@ -48,6 +48,8 @@ Here are your options as someone compiling grug:
         - I got this idea from Cubyz which has its own formatter and will not pass CI if the formatting isn't correct.
         - I don't like any of the existing options I found, I will likely make my own, eg. BeardCFormat
     - add clang-tidy to CI
+    - add tests for grug-for-c working when included in C++ mode
+        - the C code will not be compiled in C++ mode, however the header may be included from a C++ translation unit
 - get 100% coverage
     - will most likely require additional tests that aren't in grug-tests
 - add support for more build systems
