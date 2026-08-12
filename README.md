@@ -14,14 +14,10 @@ Here are your options as someone compiling grug:
 ## Roadmap
 - keep the tests up to date
 - rethink the API
-    - take the text string of the mod api json instead of asking for a file path
-    - rethink how memory is managed
-    - rethink error handling
     - pass grug IR to backend as well as AST
 - split grug_arena to its own library, eg. BeardArena
-    - This also requires eliminating all references to arenas in the main header
-- rewrite tokenizer (right now it SUCKS and is out of date)
-- parsing
+- tokenizer
+- parser
     - this includes parsing the json AST, writing out the json AST, and writing the AST back out into a grug file
     - This is when some tests may begin to pass. Get as many tests to pass as possible with only the tokenizer+parser
 - IR generation

@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <grug.h>
+#include <grug_main.h>
 #include <string.h>
 
 // Game fns get direct access to the grug state / context from which they are called
@@ -22,10 +22,10 @@ bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const*
         struct grug_file* file = &dir->files[file_index];
         // while looking for file is not the right place to report errors, but they need to be reported somewhere and doing it here works.
         if(file->error) {
-            printf("File %s has an error: %s\n", file->name.ptr, file->error->message.ptr);
+            printf("File %s has an error: %s\n", file->name, file->error->message);
         }
 
-        if(strcmp(file->name.ptr, name) == 0) {
+        if(strcmp(file->name, name) == 0) {
             *out_id = file->id;
             return true;
         }
@@ -48,8 +48,7 @@ int main(void) {
     struct grug_error error;
     struct grug_state* gst = grug_init(settings, &error);
     if(!gst) {
-		(void)fprintf(stderr, "Failed to create state: %s", error.message.ptr);
-		grug_free_error(error);
+		(void)fprintf(stderr, "Failed to create state: %s", error.message);
 		return 1;
 	}
 
@@ -68,11 +67,11 @@ int main(void) {
     for(size_t index = 0; index < on_fns.count; ++index) {
         struct grug_on_fn_entry entry = on_fns.entries[index];
 
-        if(strcmp(entry.entity_name.ptr, "Dog") == 0) {
-            if(strcmp(entry.on_fn_name.ptr, "on_spawn") == 0) {
+        if(strcmp(entry.entity_name, "Dog") == 0) {
+            if(strcmp(entry.on_fn_name, "on_spawn") == 0) {
                 on_spawn_fn_id = entry.id;
                 found_on_spawn = true;
-            } else if(strcmp(entry.on_fn_name.ptr, "on_bark") == 0) {
+            } else if(strcmp(entry.on_fn_name, "on_bark") == 0) {
                 on_bark_fn_id = entry.id;
                 found_on_bark = true;
             }
@@ -118,7 +117,7 @@ int main(void) {
         for(size_t i=0; i<updates.count; ++i) {
             struct grug_file file = updates.updates[i];
             if(file.error) {
-                printf("File %s has an error: %s\n", file.name.ptr, file.error->message.ptr);
+                (void)fprintf(stderr, "File %s has an error: %s\n", file.name, file.error->message);
             }
 
             if(file.id == labrador_script) {

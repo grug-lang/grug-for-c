@@ -4,11 +4,11 @@
 extern "C" {
 #endif
 
-#include "grug_arena.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+// MARK: types
 
 typedef uint64_t grug_id;
 
@@ -31,14 +31,6 @@ union grug_value {
 	char const* _string;
 	grug_object_id _id;
 };
-
-/// combines a null terminated C string with a length
-struct grug_string {
-	char* ptr;
-	size_t len;
-};
-
-#define GRUG_WRAP_STRING(_str) (struct grug_string){.ptr = (char*)(_str), .len = strlen(_str)}
 
 struct grug_state;
 
@@ -65,8 +57,11 @@ enum grug_error_type_enum {
 
 typedef uint32_t grug_error_type;
 
+/// This is a rather large struct (~8kib), try to avoid copying it around if possible
 struct grug_file_location {
-	struct grug_string file_name;
+	/// null terminated file name
+	/// If it takes more than 8kib to store the file name, good luck
+	char file_name[8192];
 	grug_file_id file;
 	/// the character index into the file where the error occurred.
 	size_t offset;
@@ -74,11 +69,12 @@ struct grug_file_location {
 	size_t num_characters;
 };
 
+/// This is a rather large struct (~10kib), try to avoid copying it around if possible
 struct grug_error {
 	grug_error_type error_type;
-	struct grug_string message;
+	char message[1024];
 	/// custom implementation-specific message that doesn't necessarily pass the testing suite
-	struct grug_string custom_message;
+	char custom_message[1024];
 	/// Information for if the error occurred within a grug script
 	struct grug_file_location file;
 };
@@ -92,7 +88,7 @@ typedef uint32_t grug_callstack_entry_type;
 
 struct grug_callstack_entry {
 	grug_callstack_entry_type type;
-	struct grug_string fn_name;
+	char const* fn_name;
 };
 
 struct grug_callstack {
@@ -108,16 +104,27 @@ struct grug_updates_list {
 struct grug_runtime_error_handler {
 	void* user_data;
 	void (*drop_fn)(void*);
-	/// The handler function is expected to pull the error from the grug state, since the grug_error struct has grown to be rather large.
 	void (*handler_fn)(
 		struct grug_state* gst,
+		struct grug_error* error,
 		void* user_data
 	);
 };
 
+struct grug_logger {
+	void* user_data;
+	void (*drop_fn)(void*);
+	/// Info logs are meant to be preserved in release builds
+	void (*log_info)(struct grug_state* gst, void* user_data, char const* message);
+	/// Debug logs are meant to only be enabled with a debug log flag enabled
+	void (*log_debug)(struct grug_state* gst, void* user_data, char const* message);
+	/// Trace logs are extremely verbose and are disabled by default
+	void (*log_trace)(struct grug_state* gst, void* user_data, char const* message);
+};
+
 struct grug_on_fn_entry {
-	struct grug_string entity_name;
-	struct grug_string on_fn_name;
+	char const* entity_name;
+	char const* on_fn_name;
 	grug_on_fn_id id;
 };
 
@@ -128,11 +135,11 @@ struct grug_on_fns {
 
 struct grug_file {
 	/// fill name of the mod file (ex: ak47-Gun.grug)
-	struct grug_string name;
+	char const* name;
 	/// what entity type this file implements (ex: Gun)
-	struct grug_string entity_type;
+	char const* entity_type;
 	/// the name of the entity
-	struct grug_string entity_name;
+	char const* entity_name;
 
 	/// file id
 	grug_file_id id;
@@ -143,7 +150,7 @@ struct grug_file {
 
 struct grug_mod_dir {
 	/// Name of this folder
-	struct grug_string name;
+	char const* name;
 
 	struct grug_mod_dir** mods;
 	size_t mods_size;
@@ -197,12 +204,15 @@ enum grug_token_type_enum {
 
 typedef uint32_t grug_token_type;
 
+/// opaque struct so grug can internally use any arena impl down the road
+struct grug_arena;
+
 #define GRUG_SPACES_PER_INDENT 4
 
 struct grug_token {
 	grug_token_type type;
-	// Only defined for tokens that actually hold a string of contents.
-	struct grug_string contents;
+	/// Only defined for tokens that actually hold a string of contents.
+	char const* contents;
 };
 
 struct grug_tokens {
@@ -210,7 +220,7 @@ struct grug_tokens {
 	size_t tokens_len;
 };
 
-/* AST */
+// MARK: AST
 
 enum grug_type_type_enum {
 	GRUG_TYPE_VOID = 0,
@@ -226,9 +236,12 @@ typedef uint32_t grug_type_type;
 struct grug_type {
 	grug_type_type type;
 	union {
-		struct grug_string custom_name;   /* optionally used if type is GRUG_TYPE_ID */
-		struct grug_string resource_type; /* used if type is GRUG_TYPE_RESOURCE */
-		struct grug_string entity_type;   /* optionally used if type is GRUG_TYPE_ENTITY */
+		/// optionally used if type is GRUG_TYPE_ID
+		char const* custom_name;
+		/// used if type is GRUG_TYPE_RESOURCE
+		char const* resource_type;
+		/// optionally used if type is GRUG_TYPE_ENTITYe;
+		char const* entity_type;
 	} extra_data;
 };
 
@@ -281,13 +294,13 @@ struct grug_expr {
 	/* If that is an issue, it can be solved by putting `type` and `expr_data` into an anonymous struct */
 	grug_expr_type type;
 	union {
-		struct grug_string string;
-		struct grug_string resource;
-		struct grug_string entity;
-		struct grug_string identifier_name;
+		char const* string;
+		char const* resource;
+		char const* entity;
+		char const* identifier_name;
 		struct {
 			double value;
-			struct grug_string string;
+			char const* string;
 		} number;
 		struct {
 			grug_unary_operator op;
@@ -299,7 +312,7 @@ struct grug_expr {
 			struct grug_expr* right;
 		} binary;
 		struct {
-			struct grug_string function_name;
+			char const* function_name;
 			struct grug_expr* args;
 			size_t args_count;
 			void* game_fn_ptr;
@@ -309,7 +322,7 @@ struct grug_expr {
 };
 
 struct grug_member_variable {
-	struct grug_string name;
+	char const* name;
 	struct grug_type type; 
 	struct grug_expr assignment_expr; 
 };
@@ -346,7 +359,7 @@ struct grug_statement {
 	grug_statement_type type;
 	union {
 		struct {
-			struct grug_string name;
+			char const* name;
 			struct grug_type type; /* optional */
 			struct grug_expr assignment_expr; 
 		} variable;
@@ -365,24 +378,24 @@ struct grug_statement {
 		struct {
 			struct grug_expr expr; /* Optional */
 		} return_stmt;
-		struct grug_string comment;
+		char const* comment;
 	} statement_data;
 };
 
 struct grug_argument {
-	struct grug_string name; 
+	char const* name; 
 	struct grug_type type;
 };
 
 struct grug_on_function {
-	struct grug_string name;
+	char const* name;
 	struct grug_argument* arguments;
 	size_t arguments_len;
 	struct grug_block block;
 };
 
 struct grug_helper_function {
-	struct grug_string name;
+	char const* name;
 	struct grug_type return_type;
 	struct grug_argument* arguments;
 	size_t arguments_len;
@@ -392,20 +405,16 @@ struct grug_helper_function {
 struct grug_ast {
 	struct grug_member_variable* members;
 	size_t members_count;
-
-	/* 
-	 * Each on function entry may be null which indicates that that on_function
-	 * was not present in the script 
-	 * */ 
-	struct grug_on_function** on_functions; 
+	
+	struct grug_on_function* on_functions; 
 	size_t on_functions_count; 
 
 	struct grug_helper_function* helper_function;
 	size_t helper_functions_count;
-	struct grug_arena arena;
+	struct grug_arena* _arena;
 };
 
-/* AST */
+// MARK: backend
 
 // Free all resource owned by the backend
 typedef void (*grug_backend_vtable_drop)(void* backend_data);
@@ -422,6 +431,7 @@ typedef void (*grug_backend_vtable_drop)(void* backend_data);
 /// The entity data of all entities created from the old script should be
 /// regenerated
 typedef void (*grug_backend_vtable_compile_script)(void* backend_data, grug_file_id file_id, struct grug_ast ast);
+
 /// Initialize the member data of the newly created entity. When this
 /// function is called, the member field of `entity` points to garbage and
 /// must not be deinitialized. The GrugScriptId to be used is obtained from
@@ -436,12 +446,15 @@ typedef void (*grug_backend_vtable_compile_script)(void* backend_data, grug_file
 ///
 /// Returns false if there was a runtime error during execution
 typedef bool (*grug_backend_vtable_init_entity)(void* backend_data, struct grug_state* gst, struct grug_entity* entity); 
+
 /// Deinitialize all the data associated with all entities. The pointers
 /// stored during `init_entity` must be used to get access to the entity data.
 /// The entities can only be accessed as a &GrugEntity even self is available with an exclusive reference
-typedef bool (*grug_backend_vtable_clear_entities)(void* backend_data); 
+typedef bool (*grug_backend_vtable_clear_entities)(void* backend_data);
+
 /// Deinitialize the data associated with `entity`. 
 typedef void (*grug_backend_vtable_destroy_entity_data)(void* backend_data, struct grug_entity* entity);
+
 /// Run the on function at index `on_fn_index` of the script associated
 /// with `entity`.
 ///
@@ -449,13 +462,14 @@ typedef void (*grug_backend_vtable_destroy_entity_data)(void* backend_data, stru
 /// many elements as the number of arguments to the on_ function
 ///
 /// If the number of arguments is 0, then `values` is allowed to be null
-typedef bool (*grug_backend_vtable_call_on_function_raw)(void* backend_data, struct grug_state* gst, struct grug_entity* entity, uint64_t on_fn_index, union grug_value* args); 
+typedef bool (*grug_backend_vtable_call_on_function_raw)(void* backend_data, struct grug_state* gst, struct grug_entity* entity, uint64_t on_fn_index, union grug_value* args);
+
 /// Run the on function at index `on_fn_index` of the script associated
 /// with `entity`.
 ///
 /// # Panics: The length of `values` must exactly match the number of
 /// expected arguments to the on_ function
-typedef bool (*grug_backend_vtable_call_on_function)(void* backend_data, struct grug_state* gst, struct grug_entity* entity, uint64_t on_fn_index, union grug_value* args, size_t args_len); 
+typedef bool (*grug_backend_vtable_call_on_function)(void* backend_data, struct grug_state* gst, struct grug_entity* entity, uint64_t on_fn_index, union grug_value* args, size_t args_len);
 
 struct grug_backend_vtable {
 	grug_backend_vtable_compile_script compile_script;
@@ -472,21 +486,28 @@ struct grug_backend {
 	struct grug_backend_vtable* vtable;
 };
 
-// TODO(bluesillybeard): This should probably be implementation specific
 struct grug_init_settings {
-	// TODO(bluesillybeard): We probably want a way to define the mod_api as a string (at least for prototyping)
-	char const* mod_api_path;
+	/// The raw text of the mod API
+	/// May be NULL if the file path is defined instead.
+	char const* mod_api_json_source;
+	/// The file path. Can be an absolute path or relative to CWD. If relative to CWD, grug will remember what it was at init so changing the CWD at runtime has no ill effect on grug.
+	/// May be NULL if the file source is defined instead.
+	char const* mod_api_json_path;
+	/// Can be an absolute path or relative to CWD. If relative to CWD, grug will remember what it was at init so changing the CWD at runtime has no ill effect on grug.
 	char const* mods_dir_path;
 	struct grug_runtime_error_handler runtime_error_handler;
+	struct grug_logger logger;
 	struct grug_backend backend;
 };
+
+// MARK: API
 
 struct grug_init_settings grug_default_settings(void);
 
 /// Returns null upon an error and writes to out_error
 struct grug_state* grug_init(struct grug_init_settings settings, struct grug_error* out_error);
 
-struct grug_error grug_get_error(struct grug_state* gst);
+struct grug_error const* grug_get_error(struct grug_state* gst);
 
 struct grug_callstack grug_get_callstack(struct grug_state* gst);
 
@@ -561,31 +582,33 @@ static inline union grug_value GRUG_ARG_STRING(char const* value) {union grug_va
 static inline union grug_value GRUG_ARG_ID(grug_object_id value)  {union grug_value grug_value; grug_value._id = value    ; return grug_value;}
 #pragma GCC diagnostic pop
 
-// This is basically a wrapper of malloc, but it's here to allow for a sensible alloc -> free lifetime with a pair of functions
-// it does also allocate space for a null terminator
-struct grug_string grug_alloc_string(size_t len);
-struct grug_string grug_copy_string(struct grug_string src);
-
-struct grug_error grug_copy_error(struct grug_error src);
-void grug_free_error(struct grug_error src);
-
-void grug_free_string(struct grug_string str);
-
-void grug_free_tokens(struct grug_tokens tokens);
+struct grug_arena* grug_arena_new(void);
+void* grug_arena_alloc(struct grug_arena* arena, size_t size);
+void* grug_arena_alloc_aligned(struct grug_arena* arena, size_t size, size_t align);
+// Size is required so the arena may check if the allocation is the most recent one and can pull it off the stack
+void grug_arena_free(struct grug_arena* arena, void* ptr, size_t size);
+// Size is required so the arena may check if the allocation is the most recent one and can simply extend it
+void* grug_arena_realloc(struct grug_arena* arena, void* ptr, size_t old_size, size_t new_size);
+// clears out the memory allocated in an arena, optionally keeping a reserve capacity
+void grug_arena_clear(struct grug_arena* arena, size_t reserve_bytes);
+// completely destroys an arena and all associated memory.
+void grug_arena_deinit(struct grug_arena* arena);
 
 void grug_free_ast(struct grug_ast ast);
 
-struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_error);
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error* o_error);
-struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error* o_error);
-struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error* o_error);
-struct grug_ast json_to_ast(struct grug_string json, struct grug_error* o_error);
-struct grug_string ast_to_json(struct grug_ast ast, struct grug_error* o_error);
+size_t grug_to_tokens(char const* grug, size_t grug_len, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
+size_t ast_to_tokens(struct grug_ast ast, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
 
-struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error* o_error);
-struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error* o_error);
-struct grug_string grug_to_json(struct grug_string grug, struct grug_error* o_error);
-struct grug_string json_to_grug(struct grug_string json, struct grug_error* o_error);
+size_t json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+size_t tokens_to_grug(struct grug_tokens tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+size_t ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+
+struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_arena* arena, struct grug_error* o_error);
+struct grug_ast json_to_ast(char const* json, size_t json_len, struct grug_arena* arena, struct grug_error* o_error);
+struct grug_ast grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena, struct grug_error* o_error);
+
+size_t ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+size_t grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
 
 #ifdef __cplusplus
 }

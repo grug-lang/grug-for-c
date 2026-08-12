@@ -1,6 +1,5 @@
 #include <alloca.h>
 #include <assert.h>
-#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -10,7 +9,7 @@
 #include "grug_arena.h"
 #include "grug_options.h"
 
-// SECTION MARK: mini lib
+// MARK: utilities
 
 // TODO(bluesillybeard): add a way to have a user-defined realloc, and fall back to this otherwise
 void* grug_realloc(void* ptr, size_t old_len, size_t new_len) {
@@ -86,84 +85,124 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 	return data;
 }
 
-// SECTION MARK: function implementations
+#define MIN(x, y) ((x)>(y) ? (y) : (x))
+
+// MARK: private functions
 
 struct grug_state {
+	struct grug_arena* update_arena;
 	struct grug_error last_error;
 };
 
+static void write_error_plain(grug_error_type error_type, char const* message, char const* custom_message, struct grug_file_location file, struct grug_error* out_error) {
+	if(out_error) {
+		memset(out_error, 0, sizeof(struct grug_error));
+		out_error->error_type = error_type;
+		if(message) {
+			size_t message_len = strlen(message);
+			memcpy(out_error->message, message, MIN(message_len+1, sizeof(out_error->message)));
+			if(!custom_message) {
+				memcpy(out_error->custom_message, message, MIN(message_len, sizeof(out_error->custom_message)));
+			}
+		}
+		if(custom_message) {
+			size_t message_len = strlen(custom_message);
+			memcpy(out_error->custom_message, custom_message, MIN(message_len+1, sizeof(out_error->custom_message)));
+			if(!message) {
+				memcpy(out_error->message, custom_message, MIN(message_len+1, sizeof(out_error->message)));
+			}
+		}
+		memcpy(&out_error->file, &file, sizeof(struct grug_file_location));
+	}
+}
+
+static void write_error(struct grug_state* gst, grug_error_type error_type, char const* message, char const* custom_message, struct grug_file_location file, struct grug_error* out_error) {
+	write_error_plain(error_type, message, custom_message, file, out_error);
+	if(gst) {
+		write_error_plain(error_type, message, custom_message, file, &gst->last_error);
+	}
+}
+
+// MARK: public functions
+
 struct grug_init_settings grug_default_settings(void) {
-	return (struct grug_init_settings){ 
-		// TODO(bluesillybeard): interpreter backend
-		.mod_api_path = "",
+	return (struct grug_init_settings) {
+		.mod_api_json_source = "",
 		.mods_dir_path = "",
-		.runtime_error_handler = (struct grug_runtime_error_handler){0},
-		.backend = (struct grug_backend){.obj = 0, .vtable = 0},
+		.runtime_error_handler = {0},
+		.logger = {0},
+		.backend = {0},
 	};
 }
 
+/// Returns null upon an error and writes to out_error
 struct grug_state* grug_init(struct grug_init_settings settings, struct grug_error* out_error) {
-	*out_error = grug_copy_error((struct grug_error) {
-		.error_type = GRUG_ERROR_TYPE_INIT,
-		.message = GRUG_WRAP_STRING("Not Implemented\n"),
-		.custom_message = GRUG_WRAP_STRING("Not Implemented\n"),
-	});
 	(void)settings;
-	// TODO(bluesillybeard): implement
-	return 0;
+	struct grug_state* gst = GRUG_MALLOC(sizeof(struct grug_state));
+	if(!gst) {
+		write_error_plain(GRUG_ERROR_TYPE_INIT, "Failed to create state: malloc() returned null", NULL, (struct grug_file_location){0}, out_error);
+		return NULL;
+	}
+	struct grug_arena* arena = grug_arena_new();
+	if(!arena) {
+		write_error_plain(GRUG_ERROR_TYPE_INIT, "Failed to create state: grug_arena_new() returned null", NULL, (struct grug_file_location){0}, out_error);
+		GRUG_FREE(gst, sizeof(struct grug_state));
+		return NULL;
+	}
+	*gst = (struct grug_state) {
+		.update_arena = arena,
+	};
+	return gst;
 }
 
-struct grug_error grug_get_error(struct grug_state* gst) {
-	return gst->last_error;
+struct grug_error const* grug_get_error(struct grug_state* gst) {
+	return &gst->last_error;
 }
 
 struct grug_callstack grug_get_callstack(struct grug_state* gst) {
-	// TODO(bluesillybeard): implement
+	assert(false && "Not Implemented");
 	(void)gst;
-	return (struct grug_callstack){.entries = 0, .num_entries = 0};
-}
-
-void grug_swap_backend(struct grug_state* gst, struct grug_backend backend) {
-	(void)gst;
-	(void)backend;
-	// TODO(bluesillybeard): implement
-}
-
-void grug_set_fast_mode(struct grug_state* gst, bool fast) {
-	(void)gst;
-	(void)fast;
-	// TODO(bluesillybeard): implement
+	return (struct grug_callstack){0};
 }
 
 bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn_ptr) {
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)game_fn_name;
 	(void)fn_data;
 	(void)fn_ptr;
-	// TODO(bluesillybeard): implement
 	return false;
 }
 
-struct grug_on_fns grug_get_fn_ids(struct grug_state* gst) {
+bool grug_all_game_functions_registered(struct grug_state* gst) {
+	assert(false && "Not Implemented");
 	(void)gst;
-	// TODO(bluesillybeard): implement
-	return (struct grug_on_fns){
-		.count = 0,
-		.entries = 0,
-	};
+	return false;
+}
+
+grug_on_fn_id grug_get_on_fn_id(struct grug_state* gst, const char* entity_type, const char* on_fn_name) {
+	assert(false && "Not Implemented");
+	(void)gst;
+	(void)entity_type;
+	(void)on_fn_name;
+	return 0;
+}
+
+struct grug_on_fns grug_get_fn_ids(struct grug_state* gst) {
+	assert(false && "Not Implemented");
+	(void)gst;
+	return (struct grug_on_fns){0};
 }
 
 grug_file_id grug_compile_file(struct grug_state* gst, const char* path) {
-	size_t file_len = 0;
-	char* file = read_all_contents(path, &file_len);
-	// TODO(bluesillybeard) check for read error
-	grug_file_id result = grug_compile_file_from_str(gst, path, file);
-	GRUG_FREE(file, file_len);
-	return result;
+	assert(false && "Not Implemented");
+	(void)gst;
+	(void)path;
+	return 0;
 }
 
 grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path, char const* file_text) {
-	// TODO(bluesillybeard): implement
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)path;
 	(void)file_text;
@@ -171,574 +210,236 @@ grug_file_id grug_compile_file_from_str(struct grug_state* gst, const char* path
 }
 
 const struct grug_mod_dir* grug_get_mods(struct grug_state* gst) {
+	assert(false && "Not Implemented");
 	(void)gst;
-	// TODO(bluesillybeard): implement
-	return 0;
+	return NULL;
 }
 
-grug_id grug_create_entity(struct grug_state* gst, grug_file_id script, grug_object_id me_id) {
+grug_entity_id grug_create_entity(struct grug_state* gst, grug_file_id script, grug_object_id me_id) {
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)script;
 	(void)me_id;
-	// TODO(bluesillybeard): implement
 	return 0;
 }
 
 grug_file_id grug_entity_get_file_id(struct grug_state* gst, grug_entity_id entity) {
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)entity;
-	// TODO(bluesillybeard): implement
 	return 0;
 }
 
-grug_file_id grug_entity_get_file(struct grug_state* gst, grug_id entity) {
+struct grug_entity* grug_entity_get_data(struct grug_state* gst, grug_entity_id entity) {
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)entity;
-	// TODO(bluesillybeard): implement
-	return 0;
+	return NULL;
 }
 
-struct grug_entity* grug_entity_get_data(struct grug_state* gst, grug_id entity) {
+void grug_deinit_entity(struct grug_state* gst, grug_entity_id entity) {
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)entity;
-	// TODO(bluesillybeard): implement
-	return 0;
-}
-
-void grug_deinit_entity(struct grug_state* gst, grug_id entity) {
-	(void)gst;
-	(void)entity;
-	// TODO(bluesillybeard): implement
 }
 
 struct grug_updates_list grug_update(struct grug_state* gst) {
+	assert(false && "Not Implemented");
 	(void)gst;
-	// TODO(bluesillybeard): implement
-	return (struct grug_updates_list) {
-		.count = 0,
-		.updates = 0,
-	};
+	return (struct grug_updates_list){0};
 }
 
 void grug_deinit(struct grug_state* gst) {
+	assert(false && "Not Implemented");
 	(void)gst;
-	// TODO(bluesillybeard): implement
 }
 
-bool grug_all_game_functions_registered(struct grug_state* gst) {
-	(void) gst;
-	// TODO(bluesillybeard): implement
+void grug_swap_backend(struct grug_state* gst, struct grug_backend backend) {
+	assert(false && "Not Implemented");
+	(void)gst;
+	(void)backend;
+}
+
+void grug_set_fast_mode(struct grug_state* gst, bool fast) {
+	assert(false && "Not Implemented");
+	(void)gst;
+	(void)fast;
+}
+
+bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args) {
+	assert(false && "Not Implemented");
+	(void)gst;
+	(void)entity;
+	(void)on_fn_id;
+	(void)args;
 	return false;
 }
 
-bool grug_call_on_function(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len) {
+bool grug_call_on_function(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args, size_t args_len) {
+	assert(false && "Not Implemented");
 	(void)gst;
-	(void)on_fn_id;
 	(void)entity;
+	(void)on_fn_id;
 	(void)args;
 	(void)args_len;
-	// TODO(bluesillybeard): implement
-	return false;
-}
-
-bool grug_call_on_function_raw(struct grug_state* gst, grug_id entity, grug_on_fn_id on_fn_id, union grug_value* args) {
-	(void)gst;
-	(void)on_fn_id;
-	(void)entity;
-	(void)args;
-	// TODO(bluesillybeard): implement
 	return false;
 }
 
 void grug_game_fn_runtime_error(struct grug_state* gst, char const* message) {
-	// TODO(bluesillybeard): implement
+	assert(false && "Not Implemented");
 	(void)gst;
 	(void)message;
 }
 
-void grug_backend_call(struct grug_state* gst, grug_on_fn_id fn_id, grug_id entity, const union grug_value args[]) {
-	(void)gst;
-	(void)fn_id;
-	(void)entity;
-	(void)args;
-	// TODO(bluesillybeard): implement
-}
-
-struct grug_string grug_alloc_string(size_t len) {
-	if(len == 0) {
-		return (struct grug_string){
-			.ptr = 0,
-			.len = 0,
-		};
+struct grug_arena* grug_arena_new(void) {
+	struct grug_internal_arena* arena = GRUG_MALLOC(sizeof(struct grug_internal_arena));
+	if(!arena) {
+		return NULL;
 	}
-	return (struct grug_string) {
-		.ptr = GRUG_MALLOC(len + 1),
-		.len = len,
-	};
+
+	grug_internal_arena_init(arena, 0, 8192);
+
+	return (struct grug_arena*)arena;
 }
 
-struct grug_string grug_copy_string(struct grug_string src) {
-	struct grug_string new_str = grug_alloc_string(src.len);
-	if(!new_str.len || !new_str.ptr) {
-		return (struct grug_string) {
-			.len = 0,
-			.ptr = NULL,
-		};
+void* grug_arena_alloc(struct grug_arena* arena, size_t size) {
+	if(arena) {
+		return grug_internal_arena_allocate((struct grug_internal_arena*)arena, size);
 	}
-	memcpy(new_str.ptr, src.ptr, src.len);
-	new_str.ptr[src.len] = 0;
-	return new_str;
+	return NULL;
 }
 
-void grug_free_string(struct grug_string str) {
-	if(str.len > 0) {
-		GRUG_FREE(str.ptr, str.len + 1);
+void* grug_arena_alloc_aligned(struct grug_arena* arena, size_t size, size_t align) {
+	if(arena) {
+		return grug_internal_arena_allocate_aligned((struct grug_internal_arena*)arena, size, align);
+	}
+	return NULL;
+}
+
+void grug_arena_free(struct grug_arena* arena, void* ptr, size_t size) {
+	if(arena) {
+		grug_internal_arena_free((struct grug_internal_arena*)arena, ptr, size);
 	}
 }
 
-struct grug_error grug_copy_error(struct grug_error src) {
-	struct grug_string message = grug_copy_string(src.message);
-	struct grug_string custom_message;
-	if(src.message.ptr == src.custom_message.ptr) {
-		custom_message = message;
-	} else {
-		custom_message = grug_copy_string(src.custom_message);
+void* grug_arena_realloc(struct grug_arena* arena, void* ptr, size_t old_size, size_t new_size) {
+	if(arena) {
+		return grug_internal_arena_reallocate((struct grug_internal_arena*)arena, ptr, old_size, new_size);
 	}
-
-	struct grug_file_location file;
-	switch (src.error_type) {
-		case GRUG_ERROR_TYPE_NONE:
-		case GRUG_ERROR_TYPE_INIT: {
-			file = (struct grug_file_location){0};
-			break;
-		}
-		case GRUG_ERROR_TYPE_COMPILE:
-		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW:
-		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED:
-		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
-			file = (struct grug_file_location){
-				.file = src.file.file,
-				.file_name = grug_copy_string(src.file.file_name),
-				.offset = src.file.offset,
-				.num_characters = src.file.num_characters,
-			};
-			break;
-		}
-		default: {
-			assert(false);
-		}
-	}
-
-
-	return (struct grug_error) {
-		.error_type = src.error_type,
-		.message = message,
-		.custom_message = custom_message,
-		.file = file,
-	};
+	return NULL;
 }
 
-void grug_free_error(struct grug_error src){
-	grug_free_string(src.message);
-	if(src.message.ptr != src.custom_message.ptr) {
-		grug_free_string(src.custom_message);
-	}
-
-	switch (src.error_type) {
-		case GRUG_ERROR_TYPE_NONE:
-		case GRUG_ERROR_TYPE_INIT: {
-			// nothing to free
-		}
-		case GRUG_ERROR_TYPE_COMPILE:
-		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW:
-		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED:
-		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
-			grug_free_string(src.file.file_name);
-		}
-		default: {}
+void grug_arena_clear(struct grug_arena* arena, size_t reserve_bytes) {
+	if(arena) {
+		grug_internal_arena_reset((struct grug_internal_arena*)arena, reserve_bytes);
 	}
 }
 
-void grug_free_tokens(struct grug_tokens tokens) {
-	for(size_t token_index = 0; token_index < tokens.tokens_len; token_index += 1) {
-		grug_free_string(tokens.tokens[token_index].contents);
+void grug_arena_deinit(struct grug_arena* arena) {
+	if(arena) {
+		grug_internal_arena_deinit((struct grug_internal_arena*)arena);
+		GRUG_FREE(arena, sizeof(struct grug_internal_arena));
 	}
-	GRUG_FREE(tokens.tokens, tokens.tokens_len * sizeof(struct grug_token));
 }
 
-void grug_free_ast(struct grug_ast ast)  {
-	grug_arena_deinit(&ast.arena);
-}
-
-static void add_token(struct grug_tokens* tokens, size_t* capacity, struct grug_token token) {
-	if(*capacity == tokens->tokens_len) {
-		size_t new_capacity = *capacity * 3 / 2 + 1;
-		struct grug_token* new_tokens = grug_realloc(tokens->tokens, *capacity, new_capacity);
-		assert(new_tokens);
-		*capacity = new_capacity;
-		tokens->tokens = new_tokens;
-	}
-	tokens->tokens[tokens->tokens_len] = token;
-	tokens->tokens_len += 1;
-}
-
-static struct grug_error grug_alloc_format_error(grug_error_type error, char const* fmt, ...) {
-	va_list vargs = {0};
-	va_start(vargs, fmt);
-	int error_message_len = vsnprintf(NULL, 0, fmt, vargs) + 1; //NOLINT: clang-tidy seems to think vargs is uninitialized here
-	va_end(vargs);
-	va_start(vargs, fmt);
-	char* error_msg = 0;
-	if(error_message_len <= 0) {
-		// TODO(bluesillybeard): limit the size of the alloca allocation here, or use an arena allocator instead
-		error_msg = alloca((unsigned int)error_message_len);
-		int result = snprintf(error_msg, (size_t)error_message_len, fmt, vargs);
-		if(result <= 0) {
-			error_msg = "Failed to format message";
-			error_message_len = (int)strlen(error_msg);
-		}
-	} else {
-		error_msg = "Failed to format message";
-		error_message_len = (int)strlen(error_msg);
-	}
-	va_end(vargs);
-	return grug_copy_error((struct grug_error) {
-		.error_type = error,
-		.message = (struct grug_string){.ptr = error_msg, .len = (size_t)error_message_len},
-
-	});
-}
-
-struct grug_tokens grug_to_tokens(struct grug_string grug, struct grug_error* o_error) {
-	(void)o_error;
-	struct grug_tokens tokens = {
-		.tokens = 0,
-		.tokens_len = 0,
-	};
-	size_t tokens_capacity = 0;
-	char* src = grug.ptr;
-	size_t src_len = grug.len;
-	size_t i = 0;
-	size_t line_number = 1;
-	// TODO(bluesillybeard): clean up this horrible copy-paste of the grug-for-python code unceremoniously translated line-for-line without splitting things into functions.
-	while(i < grug.len) {
-		char character = src[i];
-		if(character == '(') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_OPEN_PARENTHESIS, {.len = 0}});
-			i += 1;
-		}
-		else if(character == ')') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_CLOSE_PARENTHESIS, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '{') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_OPEN_BRACE, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '}') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_CLOSE_BRACE, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '+') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_PLUS, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '-') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_MINUS, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '*'){
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_MULTIPLICATION, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '/') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_DIVISION, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == ',') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_COMMA, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == ':') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_COLON, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '\n') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NEWLINE, .contents = {.ptr = &src[i], .len = 1}});
-			line_number += 1;
-			i += 1;
-		}
-		else if(character == '=' && i + 1 < src_len && src[i + 1] == '=') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_EQUALS, .contents = GRUG_WRAP_STRING("==")});
-			i += 2;
-		}
-		else if(character == '!' && i + 1 < src_len && src[i + 1] == '=') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NOT_EQUALS, .contents = GRUG_WRAP_STRING("!=")});
-			i += 2;
-		}
-		else if(character == '=') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_ASSIGNMENT, .contents = {.ptr = &src[i], .len = 1}});
-			i += 1;
-		}
-		else if(character == '>' && i + 1 < src_len && src[i + 1] == '=') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_GREATER_OR_EQUAL, .contents = GRUG_WRAP_STRING(">=")});
-			i += 2;
-		}
-		else if(character == '>') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_GREATER, .contents = GRUG_WRAP_STRING(">")});
-			i += 1;
-		}
-		else if(character == '<' && i + 1 < src_len && src[i + 1] == '=') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_LESS_OR_EQUAL, .contents = GRUG_WRAP_STRING("<=")});
-			i += 2;
-		}
-		else if(character == '<') {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_LESS, .contents = GRUG_WRAP_STRING("<")});
-			i += 1;
-		}
-		else if((i+sizeof("and") < src_len && memcmp(&src[i], "and", sizeof("and")) == 0) && ((i + 3) >= src_len || (!(src[i + 3] >= '0' && src[i + 3] <= '9') || src[i + 3] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_AND, .contents = GRUG_WRAP_STRING("and")});
-			i += 3;
-		}
-		else if((i+sizeof("or") < src_len && memcmp(&src[i], "or", sizeof("or")) == 0) && ((i + 2) >= src_len || (!(src[i + 2] >= '0' && src[i + 2] <= '9') || src[i + 2] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_OR, .contents = GRUG_WRAP_STRING("or")});
-			i += 2;
-		}
-		else if((i+sizeof("not") < src_len && memcmp(&src[i], "not", sizeof("not")) == 0) && ((i + 3) >= src_len || (!(src[i + 3] >= '0' && src[i + 3] <= '9') || src[i + 3] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NOT, .contents = GRUG_WRAP_STRING("not")});
-			i += 3;
-		}
-		else if((i+sizeof("true") < src_len && memcmp(&src[i], "true", sizeof("true")) == 0) && ((i + 4) >= src_len || (!(src[i + 4] >= '0' && src[i + 4] <= '9') || src[i + 4] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_TRUE, .contents = GRUG_WRAP_STRING("true")});
-			i += 4;
-		}
-		else if((i+sizeof("false") < src_len && memcmp(&src[i], "false", sizeof("false")) == 0) && ((i + 5) >= src_len || (!(src[i + 5] >= '0' && src[i + 5] <= '9') || src[i + 5] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_FALSE, .contents = GRUG_WRAP_STRING("false")});
-			i += 5;
-		}
-		else if((i+sizeof("if") < src_len && memcmp(&src[i], "if", sizeof("if")) == 0) && ((i + 2) >= src_len || (!(src[i + 2] >= '0' && src[i + 2] <= '9') || src[i + 2] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_IF, .contents = GRUG_WRAP_STRING("if")});
-			i += 2;
-		}
-		else if((i+sizeof("else") < src_len && memcmp(&src[i], "else", sizeof("else")) == 0) && ((i + 4) >= src_len || (!(src[i + 4] >= '0' && src[i + 4] <= '9') || src[i + 4] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_ELSE, .contents = GRUG_WRAP_STRING("else")});
-			i += 4;
-		}
-		else if((i+sizeof("while") < src_len && memcmp(&src[i], "while", sizeof("while")) == 0) && ((i + 5) >= src_len || (!(src[i + 5] >= '0' && src[i + 5] <= '9') || src[i + 5] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_WHILE, .contents = GRUG_WRAP_STRING("while")});
-			i += 5;
-		}
-		else if((i+sizeof("break") < src_len && memcmp(&src[i], "break", sizeof("break")) == 0) && ((i + 5) >= src_len || (!(src[i + 5] >= '0' && src[i + 5] <= '9') || src[i + 5] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_BREAK, .contents = GRUG_WRAP_STRING("break")});
-			i += 5;
-		}
-		else if((i+sizeof("return") < src_len && memcmp(&src[i], "return", sizeof("return")) == 0) && ((i + 6) >= src_len || (!(src[i + 6] >= '0' && src[i + 6] <= '9') || src[i + 6] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_RETURN, .contents = GRUG_WRAP_STRING("return")});
-			i += 6;
-		}
-		else if((i+sizeof("continue") < src_len && memcmp(&src[i], "continue", sizeof("continue")) == 0) && ((i + 8) >= src_len || (!(src[i + 8] >= '0' && src[i + 8] <= '9') || src[i + 8] == '_'))) {
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_CONTINUE, .contents = GRUG_WRAP_STRING("continue")});
-			i += 8;
-		} else if (character == ' ') {
-			if(i + 1 >= src_len || src[i + 1] != ' ') {
-				add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_SPACE, .contents = GRUG_WRAP_STRING(" ")});
-				i += 1;
-				continue;
-			}
-			size_t old_i = i;
-			while(i < src_len && src[i] == ' '){
-				i += 1;
-			}
-
-			size_t spaces = i - old_i;
-
-			if(spaces % GRUG_SPACES_PER_INDENT != 0){
-				// TODO(bluesillybeard): what to do when there are more than 2gib of spaces?
-				if(spaces > INT_MAX) {
-					spaces = INT_MAX;
-				}
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Encountered %d spaces, while indentation expects multiples of %d spaces, on line %d", (int)spaces, GRUG_SPACES_PER_INDENT, line_number);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-			// TODO(bluesillybeard): make the number of spaces actually match the spaces per indent
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_INDENTATION, .contents = GRUG_WRAP_STRING("    ")});
-		} else if(character == '*') {
-			i += 1;
-			size_t start = i;
-			while(i < src_len && src[i] != '"') {
-				if(src[i] == '\0'){
-					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected null byte on line %d", line_number);
-					// Free whatever we had so far
-					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-					return (struct grug_tokens){0};
-				} else if(src[i] == '\\' && i + 1 < src_len && (src[i + 1] == '\r' || src[i + 1] == '\n')) {
-					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected line break in string on line %d", line_number);
-					// Free whatever we had so far
-					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-					return (struct grug_tokens){0};
-				}
-				i += 1;
-			}
-			if(i >= src_len) {
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unclosed \" on line %d", line_number);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_STRING, .contents = (struct grug_string){.ptr = &src[start], .len = (i - start)}});
-			i += 1;
-		} else if(isalpha(character) || character == '_') {
-			size_t start = i;
-			while(i < src_len && (isalnum(src[i]) || src[i] == '_')) {
-				i += 1;
-			}
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_WORD, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
-		} else if(isdigit(character)) {
-			size_t start = i;
-			bool seen_period = false;
-			i += 1;
-			while(i < src_len && (isdigit(src[i]) || src[i] == '.')) {
-				if(src[i] == '.') {
-					if(seen_period) {
-						*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Encountered two '.' periods in a number on line %d", line_number);
-						// Free whatever we had so far
-						GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-						return (struct grug_tokens){0};
-					}
-					seen_period = true;
-				}
-				i += 1;
-			}
-			if(src[i - 1] == '.') {
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Missing digit after decimal point in %*.s", i - start, &src[start]);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_NUMBER, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
-		} else if(character == '#') {
-			i += 1;
-			if(i >= src_len || src[i] != ' ') {
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Expected a single space after the '#' on line %d", line_number);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-			i += 1;
-			size_t start = i;
-			while(i < src_len && src[i] != '\r' && src[i] != '\n'){
-				if(src[i] == '\0') {
-					*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unexpected null byte on line %d", line_number);
-					// Free whatever we had so far
-					GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-					return (struct grug_tokens){0};
-				}
-				i += 1;
-			}
-
-			size_t comment_len = i - start;
-			if(comment_len == 0) {
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Expected the comment to contain some text on line %d", line_number);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-
-			if(isspace(src[i - 1])) {
-				*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "A comment has trailing whitespace on line %d", line_number);
-				// Free whatever we had so far
-				GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-				return (struct grug_tokens){0};
-			}
-
-			add_token(&tokens, &tokens_capacity, (struct grug_token){.type = GRUG_TOKEN_COMMENT, .contents = (struct grug_string){.ptr = &src[start], .len = i - start}});
-		} else {
-			*o_error = grug_alloc_format_error(GRUG_ERROR_TYPE_COMPILE, "Unrecognized character '%c' on line %d", character, line_number);
-			// Free whatever we had so far
-			GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-			return (struct grug_tokens){0};
-		}
-	}
-
-	// Copy all of the tokens
-	struct grug_tokens result = (struct grug_tokens) {
-		.tokens = tokens.tokens_len ? GRUG_MALLOC(tokens.tokens_len * sizeof(*tokens.tokens)) : NULL,
-		.tokens_len = tokens.tokens_len,
-	};
-	for(size_t i = 0; i < tokens.tokens_len; i += 1) {
-		result.tokens[i] = (struct grug_token) {
-			.type = tokens.tokens[i].type,
-			// grug_copy_string does not actually check the null terminator, but it will always include one in the copy.
-			// ALL of the strings from the tokenization are either statically allocated, or they are a window into the original format string.
-			.contents = grug_copy_string(tokens.tokens[i].contents),
-		};
-	}
-	GRUG_FREE(tokens.tokens, tokens_capacity * sizeof(*tokens.tokens));
-	return result;
-}
-
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_error* o_error) {
-	(void)tokens;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
-}
-
-struct grug_tokens ast_to_tokens(struct grug_ast ast, struct grug_error* o_error) {
+void grug_free_ast(struct grug_ast ast) {
+	assert(false && "Not Implemented");
 	(void)ast;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_tokens){.tokens_len = 0};
 }
 
-struct grug_string tokens_to_grug(struct grug_tokens tokens, struct grug_error* o_error) {
-	(void)tokens;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_string){.len = 0};
-}
-
-struct grug_ast json_to_ast(struct grug_string json, struct grug_error* o_error) {
-	(void)json;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
-}
-
-struct grug_string ast_to_json(struct grug_ast ast, struct grug_error* o_error) {
-	(void)ast;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_string){.len = 0};
-}
-
-struct grug_ast grug_to_ast(struct grug_string grug, struct grug_error* o_error) {
+size_t grug_to_tokens(char const* grug, size_t grug_len, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
 	(void)grug;
+	(void)grug_len;
+	(void)out_tokens;
+	(void)out_tokens_capacity;
 	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_ast){.helper_functions_count = 0, .on_functions_count = 0, .members_count = 0};
+	return 0;
 }
 
-struct grug_string ast_to_grug(struct grug_ast ast, struct grug_error* o_error) {
+size_t ast_to_tokens(struct grug_ast ast, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
 	(void)ast;
+	(void)out_tokens;
+	(void)out_tokens_capacity;
 	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_string){.len = 0};
+	return 0;
 }
 
-struct grug_string grug_to_json(struct grug_string grug, struct grug_error* o_error) {
-	(void)grug;
-	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_string){.len = 0};
-}
-
-struct grug_string json_to_grug(struct grug_string json, struct grug_error* o_error) { 
+size_t json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
 	(void)json;
+	(void)json_len;
+	(void)out_string_buffer;
+	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
+	(void)out_string_buffer_capacity;
 	(void)o_error;
-	// TODO(bluesillybeard)
-	return (struct grug_string){.len = 0};
+	return 0;
+}
+
+size_t tokens_to_grug(struct grug_tokens tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)tokens;
+	(void)out_string_buffer;
+	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
+	(void)out_string_buffer_capacity;
+	(void)o_error;
+	return 0;
+}
+
+size_t ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)ast;
+	(void)out_string_buffer;
+	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
+	(void)out_string_buffer_capacity;
+	(void)o_error;
+	return 0;
+}
+
+struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_arena* arena, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)tokens;
+	(void)arena;
+	(void)o_error;
+	return (struct grug_ast){0};
+}
+
+struct grug_ast json_to_ast(char const* json, size_t json_len, struct grug_arena* arena, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)json;
+	(void)json_len;
+	(void)arena;
+	(void)o_error;
+	return (struct grug_ast){0};
+}
+
+struct grug_ast grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)grug;
+	(void)grug_len;
+	(void)arena;
+	(void)o_error;
+	return (struct grug_ast){0};
+}
+
+size_t ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)ast;
+	(void)out_string_buffer;
+	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
+	(void)out_string_buffer_capacity;
+	(void)o_error;
+	return 0;
+}
+
+size_t grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)grug;
+	(void)grug_len;
+	(void)out_string_buffer;
+	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
+	(void)out_string_buffer_capacity;
+	(void)o_error;
+	return 0;
 }
