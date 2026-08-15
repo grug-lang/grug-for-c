@@ -1,4 +1,3 @@
-#include <alloca.h>
 #include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -85,8 +84,6 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 	return data;
 }
 
-#define MIN(x, y) ((x)>(y) ? (y) : (x))
-
 // MARK: private functions
 
 struct grug_state {
@@ -94,34 +91,44 @@ struct grug_state {
 	struct grug_error last_error;
 };
 
-static void write_error_plain(grug_error_type error_type, char const* message, char const* custom_message, struct grug_file_location file, struct grug_error* out_error) {
+static void write_error_plain(struct grug_error_code error_code, char const* message, char const* custom_message, struct grug_file_location file, struct grug_callstack callstack, struct grug_arena* arena_or_none, struct grug_error* out_error) {
 	if(out_error) {
-		memset(out_error, 0, sizeof(struct grug_error));
-		out_error->error_type = error_type;
-		if(message) {
-			size_t message_len = strlen(message);
-			memcpy(out_error->message, message, MIN(message_len+1, sizeof(out_error->message)));
-			if(!custom_message) {
-				memcpy(out_error->custom_message, message, MIN(message_len, sizeof(out_error->custom_message)));
-			}
+		if(!message && custom_message) {
+			message = custom_message;
 		}
-		if(custom_message) {
-			size_t message_len = strlen(custom_message);
-			memcpy(out_error->custom_message, custom_message, MIN(message_len+1, sizeof(out_error->custom_message)));
-			if(!message) {
-				memcpy(out_error->message, custom_message, MIN(message_len+1, sizeof(out_error->message)));
-			}
+		if(!custom_message && message) {
+			custom_message = message;
 		}
-		memcpy(&out_error->file, &file, sizeof(struct grug_file_location));
+		struct grug_error err = {
+			.error_type = error_code,
+			.message = message,
+			.custom_message = custom_message,
+			.file = file,
+			.callstack = callstack,
+			.arena = NULL,
+		};
+		*out_error = grug_copy_error(&err, arena_or_none);
 	}
 }
 
-static void write_error(struct grug_state* gst, grug_error_type error_type, char const* message, char const* custom_message, struct grug_file_location file, struct grug_error* out_error) {
-	write_error_plain(error_type, message, custom_message, file, out_error);
+static void write_error_plain_basic(struct grug_error_code error_code, char const* message, char const* custom_message, struct grug_arena* arena, struct grug_error* out_error) {
+	write_error_plain(error_code, message, custom_message, (struct grug_file_location){0}, (struct grug_callstack){0}, arena, out_error);
+}
+
+static void write_error(struct grug_state* gst, struct grug_error_code error_code, char const* message, char const* custom_message, struct grug_file_location file, struct grug_callstack callstack, struct grug_error* out_error) {
+	write_error_plain(error_code, message, custom_message, file, callstack, NULL, out_error);
 	if(gst) {
-		write_error_plain(error_type, message, custom_message, file, &gst->last_error);
+		write_error_plain(error_code, message, custom_message, file, callstack, gst->last_error.arena, &gst->last_error);
 	}
 }
+
+static void write_error_basic(struct grug_state* gst, struct grug_error_code error_code, char const* message, char const* custom_message, struct grug_error* out_error) {
+	write_error_plain(error_code, message, custom_message, (struct grug_file_location){0}, (struct grug_callstack){0}, NULL, out_error);
+	if(gst) {
+		write_error_plain(error_code, message, custom_message, (struct grug_file_location){0}, (struct grug_callstack){0}, gst->last_error.arena, &gst->last_error);
+	}
+}
+
 
 // MARK: public functions
 
@@ -140,17 +147,20 @@ struct grug_state* grug_init(struct grug_init_settings settings, struct grug_err
 	(void)settings;
 	struct grug_state* gst = GRUG_MALLOC(sizeof(struct grug_state));
 	if(!gst) {
-		write_error_plain(GRUG_ERROR_TYPE_INIT, "Failed to create state: malloc() returned null", NULL, (struct grug_file_location){0}, out_error);
+		write_error_basic(NULL, GRUG_ERROR_CODE_INIT, "Failed to create state: malloc() returned null", NULL, out_error);
 		return NULL;
 	}
-	struct grug_arena* arena = grug_arena_new();
-	if(!arena) {
-		write_error_plain(GRUG_ERROR_TYPE_INIT, "Failed to create state: grug_arena_new() returned null", NULL, (struct grug_file_location){0}, out_error);
+	struct grug_arena* update_arena = grug_arena_new();
+	if(!update_arena) {
+		write_error_basic(NULL, GRUG_ERROR_CODE_INIT, "Failed to create state: grug_arena_new() returned null", NULL, out_error);
 		GRUG_FREE(gst, sizeof(struct grug_state));
 		return NULL;
 	}
+	// Not sure why but GCC doesn't like allowing the initializer for the empty last error to be inside the initializer for the grug_state.
+	struct grug_error null_error = {0};
 	*gst = (struct grug_state) {
-		.update_arena = arena,
+		.last_error = null_error,
+		.update_arena = update_arena,
 	};
 	return gst;
 }
@@ -291,6 +301,72 @@ void grug_game_fn_runtime_error(struct grug_state* gst, char const* message) {
 	(void)message;
 }
 
+struct grug_error grug_copy_error(struct grug_error const* err, struct grug_arena* arena_or_none) {
+	if(!err) {
+		return (struct grug_error) {0};
+	}
+	if(err->callstack.num_entries) {
+		assert(err->callstack.entries);
+	}
+	if(err->custom_message || err->message) {
+		assert(err->custom_message);
+		assert(err->message);
+	}
+	bool needs_allocation = err->message || err->custom_message || err->file.file_name || err->callstack.num_entries;
+	struct grug_arena* arena = NULL;
+	if(needs_allocation) {
+		arena = arena_or_none;
+		if(!arena) {
+			arena = grug_arena_new();
+			if(!arena) {
+				/// If the creation of an arena failed, return some static memory with an error instead
+				return (struct grug_error) {
+					.error_type = GRUG_ERROR_CODE_INIT,
+					.message = "Failed to create error: grug_arena_new() returned null",
+					.custom_message = "Failed to create error: grug_arena_new() returned null",
+					.file = {0},
+					.callstack = {0},
+					.arena = NULL,
+				};
+			}
+		}
+	}
+	// make copies of things - grug_arena_copy_string is null safe and will propagate either a null arena or a null string
+	char const* err_message = grug_arena_copy_string(arena, err->message);
+	char const* err_custom_message = NULL;
+	// No point re-copying the same string
+	if(err->custom_message == err->message) {
+		err_custom_message = err_message;
+	} else {
+		err_custom_message = grug_arena_copy_string(arena, err->custom_message);
+	}
+	char const* err_file_location_file_name = grug_arena_copy_string(arena, err->file.file_name);
+	struct grug_callstack_entry* err_callstack_entries = (struct grug_callstack_entry*)grug_arena_copy(arena, (void*)err->callstack.entries, err->callstack.num_entries * sizeof(struct grug_callstack_entry));
+	for(size_t entry_index = 0; entry_index < err->callstack.num_entries; entry_index += 1) {
+		err_callstack_entries[entry_index].fn_name = grug_arena_copy_string(arena, err_callstack_entries[entry_index].fn_name);
+	}
+	return (struct grug_error) {
+		.error_type = err->error_type,
+		.message = err_message,
+		.custom_message = err_custom_message,
+		.file.file_name = err_file_location_file_name,
+		.file.file = err->file.file,
+		.file.offset = err->file.offset,
+		.file.num_characters = err->file.num_characters,
+		.callstack.entries = err_callstack_entries,
+		.callstack.num_entries = err->callstack.num_entries,
+		.arena = arena,
+	};
+}
+
+void grug_assign_error(struct grug_error* err, struct grug_error const* new_err, struct grug_arena* arena_or_none) {
+	if(err->arena) {
+		*err = grug_copy_error(new_err, err->arena);
+	} else {
+		*err = grug_copy_error(new_err, arena_or_none);
+	}
+}
+
 struct grug_arena* grug_arena_new(void) {
 	struct grug_internal_arena* arena = GRUG_MALLOC(sizeof(struct grug_internal_arena));
 	if(!arena) {
@@ -305,6 +381,25 @@ struct grug_arena* grug_arena_new(void) {
 void* grug_arena_alloc(struct grug_arena* arena, size_t size) {
 	if(arena) {
 		return grug_internal_arena_allocate((struct grug_internal_arena*)arena, size);
+	}
+	return NULL;
+}
+
+char* grug_arena_copy(struct grug_arena* arena, char const* data, size_t size) {
+	if(arena && data) {
+		char* dst = grug_arena_alloc(arena, size);
+		memcpy(dst, data, size);
+		return dst;
+	}
+	return NULL;
+}
+
+char* grug_arena_copy_string(struct grug_arena* arena, char const* data) {
+	if(arena && data) {
+		size_t size = strlen(data) + 1;
+		char* dst = grug_arena_alloc(arena, size);
+		memcpy(dst, data, size);
+		return dst;
 	}
 	return NULL;
 }

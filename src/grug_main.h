@@ -46,37 +46,40 @@ struct grug_entity {
 
 typedef union grug_value (*game_fn)(struct grug_state* gst, void* data, const union grug_value[]);
 
-enum grug_error_type_enum {
-	GRUG_ERROR_TYPE_NONE = 0,
-	GRUG_ERROR_TYPE_INIT,
-	GRUG_ERROR_TYPE_COMPILE,
-	GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW,
-	GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED,
-	GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR,
+struct grug_error_code {
+	// four components make an error code, each one more specific than the last
+	// See the macros below for specific errors that can happen
+	uint8_t tag[4];
 };
 
-typedef uint32_t grug_error_type;
+#define GRUG_ERROR_CODE_NONE ((struct grug_error_code) {{0, 0, 0, 0}})
+#define GRUG_ERROR_CODE_INIT ((struct grug_error_code) {{1, 0, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE ((struct grug_error_code) {{2, 0, 0, 0}})
+#define GRUG_ERROR_CODE_RUNTIME ((struct grug_error_code) {{3, 0, 0, 0}})
 
-/// This is a rather large struct (~8kib), try to avoid copying it around if possible
+#define GRUG_ERROR_CODE_INIT_MOD_API ((struct grug_error_code){{1, 1, 0, 0}});
+#define GRUG_ERROR_CODE_INIT_FUNCTION_REGISTRATION ((struct grug_error_code){{1, 2, 0, 0}});
+
+#define GRUG_ERROR_CODE_INIT_MOD_API_IO ((struct grug_error_code){{1, 1, 1, 0}});
+#define GRUG_ERROR_CODE_INIT_MOD_API_JSON ((struct grug_error_code){{1, 1, 2, 0}});
+
+#define GRUG_ERROR_CODE_COMPILE_IO ((struct grug_error_code) {{2, 1, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE_FILE_NAME ((struct grug_error_code) {{2, 2, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE_UTF8 ((struct grug_error_code) {{2, 3, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE_TOKENIZER ((struct grug_error_code) {{2, 4, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE_PARSER ((struct grug_error_code) {{2, 5, 0, 0}})
+#define GRUG_ERROR_CODE_COMPILE_TYPE_CHECKER ((struct grug_error_code) {{2, 6, 0, 0}})
+
+#define GRUG_ERROR_CODE_COMPILE_FILE_NAME_EMPTY_FILE ((struct grug_error_code) {{2, 2, 1, 0}})
+
 struct grug_file_location {
 	/// null terminated file name
-	/// If it takes more than 8kib to store the file name, good luck
-	char file_name[8192];
+	char const* file_name;
 	grug_file_id file;
 	/// the character index into the file where the error occurred.
 	size_t offset;
 	/// The number of characters to highlight when reporting the error (how many characters to put the squiggly lines under)
 	size_t num_characters;
-};
-
-/// This is a rather large struct (~10kib), try to avoid copying it around if possible
-struct grug_error {
-	grug_error_type error_type;
-	char message[1024];
-	/// custom implementation-specific message that doesn't necessarily pass the testing suite
-	char custom_message[1024];
-	/// Information for if the error occurred within a grug script
-	struct grug_file_location file;
 };
 
 enum grug_callstack_entry_type_enum {
@@ -94,6 +97,20 @@ struct grug_callstack_entry {
 struct grug_callstack {
 	struct grug_callstack_entry* entries;
 	size_t num_entries;
+};
+
+struct grug_error {
+	struct grug_error_code error_type;
+	char const* message;
+	/// custom implementation-specific message that doesn't necessarily pass the testing suite
+	char const* custom_message;
+	/// Information for if the error occurred within a grug script
+	struct grug_file_location file;
+	/// The callstack at the point of the error if it is available
+	struct grug_callstack callstack;
+	/// An error may own quite a lot of allocations, hence the arena.
+	/// To free the error, simply destroy the arena.
+	struct grug_arena* arena;
 };
 
 struct grug_updates_list {
@@ -582,17 +599,43 @@ static inline union grug_value GRUG_ARG_STRING(char const* value) {union grug_va
 static inline union grug_value GRUG_ARG_ID(grug_object_id value)  {union grug_value grug_value; grug_value._id = value    ; return grug_value;}
 #pragma GCC diagnostic pop
 
+static inline bool grug_error_code_matches(struct grug_error_code left, struct grug_error_code right) {
+	size_t i = 0; 
+	while (i < sizeof(struct grug_error_code) / sizeof(uint8_t)) {
+		if (left.tag[i] == 0 || right.tag[i] == 0) {
+			return true;
+		} else if (left.tag[i] != right.tag[i]) {
+			return false;
+		}
+		i += 1;
+	}
+	return true;
+}
+
 struct grug_arena* grug_arena_new(void);
 void* grug_arena_alloc(struct grug_arena* arena, size_t size);
+char* grug_arena_copy(struct grug_arena* arena, char const* data, size_t size);
+/// grug_arena_copy_string is null safe and will propagate either a null arena or a null string
+char* grug_arena_copy_string(struct grug_arena* arena, char const* data);
 void* grug_arena_alloc_aligned(struct grug_arena* arena, size_t size, size_t align);
-// Size is required so the arena may check if the allocation is the most recent one and can pull it off the stack
+/// Size is required so the arena may check if the allocation is the most recent one and can pull it off the stack
 void grug_arena_free(struct grug_arena* arena, void* ptr, size_t size);
-// Size is required so the arena may check if the allocation is the most recent one and can simply extend it
+/// Size is required so the arena may check if the allocation is the most recent one and can simply extend it
 void* grug_arena_realloc(struct grug_arena* arena, void* ptr, size_t old_size, size_t new_size);
-// clears out the memory allocated in an arena, optionally keeping a reserve capacity
+/// clears out the memory allocated in an arena, optionally keeping a reserve capacity
 void grug_arena_clear(struct grug_arena* arena, size_t reserve_bytes);
-// completely destroys an arena and all associated memory.
+/// completely destroys an arena and all associated memory.
 void grug_arena_deinit(struct grug_arena* arena);
+
+struct grug_error grug_copy_error(struct grug_error const* err, struct grug_arena* arena_or_none);
+
+/// replaces an existing error object with a new one, ideally without re-allocating all of the memory
+void grug_assign_error(struct grug_error* err, struct grug_error const* new_err, struct grug_arena* arena_or_none);
+
+static inline void grug_free_error(struct grug_error* err) {
+	grug_arena_deinit(err->arena);
+	*err = (struct grug_error) {0};
+}
 
 void grug_free_ast(struct grug_ast ast);
 

@@ -52,14 +52,13 @@ struct grug_file_id {
 	struct grug_file_id* pnext;
 };
 
-struct grug_file_id* g_file_wrappers; // NOLINT: this cannot be const
-struct grug_error g_error; // NOLINT: this cannot be const
+struct grug_file_id* g_file_wrappers = NULL; // NOLINT: this cannot be const
+struct grug_error g_error = {0}; // NOLINT: this cannot be const
 
 struct grug_file_id* impl_compile_grug_file(struct grug_state* state, const char* file_path, const char** error_out) {
 	grug_file_id res = grug_compile_file(state, file_path);
 	if(!res) {
-		// The reason for a global error instance here is it allows the state to be freed and the memory is still valid
-		g_error = *grug_get_error(state);
+		grug_assign_error(&g_error, grug_get_error(state), NULL);
 		*error_out = g_error.message;
 		return 0;
 	}
@@ -115,7 +114,7 @@ void impl_call_export_fn(struct grug_state* state, struct grug_entity_id* entity
 bool impl_grug_to_json(struct grug_state* state, const char *input_grug_buffer, char *output_json_buffer, size_t output_buffer_len) {
 	(void)state;
 	size_t result = grug_to_json(input_grug_buffer, 0, output_json_buffer, output_buffer_len, &g_error);
-	if(g_error.error_type) {
+	if(g_error.error_type.tag[0]) {
 		return false;
 	}
 	if(result >= output_buffer_len) {
@@ -127,7 +126,7 @@ bool impl_grug_to_json(struct grug_state* state, const char *input_grug_buffer, 
 bool impl_json_to_grug(struct grug_state* state, const char *input_json_buffer, char *output_grug_buffer, size_t output_buffer_len) {
 	(void)state;
 	size_t result = json_to_grug(input_json_buffer, 0, output_grug_buffer, output_buffer_len, &g_error);
-	if(g_error.error_type) {
+	if(g_error.error_type.tag[0]) {
 		return false;
 	}
 	if(result >= output_buffer_len) {
@@ -196,9 +195,10 @@ struct test_game_fn_data const game_fn_retrieve_dat = {.fn = game_fn_retrieve, .
 struct test_game_fn_data const game_fn_box_number_dat = {.fn = game_fn_box_number, .name = "game_fn_box_number"};
 
 static void impl_grug_tests_runtime_error_handler(struct grug_state* gst, struct grug_error* error, void* obj) {
+	(void)gst;
 	(void)obj;
 
-	struct grug_callstack calls = grug_get_callstack(gst);
+	struct grug_callstack calls = error->callstack;
 	
 	char const* on_fn_name = 0;
 	for(size_t i=1; i <= calls.num_entries; i += 1) {
@@ -210,35 +210,20 @@ static void impl_grug_tests_runtime_error_handler(struct grug_state* gst, struct
 	if(!on_fn_name) {
 		on_fn_name = "Unknown";
 	}
+
+	char const* message = error->message;
+	if(!message) {
+		message = "Unknown";
+	}
+
+	char const* file_name = error->file.file_name;
+	if(!file_name) {
+		file_name = "Unknown";
+	}
 	
-	switch(error->error_type) {
-		case GRUG_ERROR_TYPE_NONE: {
-			grug_tests_runtime_error_handler("Unknown", GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, "Unknown");
-			return;
-		}
-		case GRUG_ERROR_TYPE_INIT: {
-			grug_tests_runtime_error_handler(error->message, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, "Unknown");
-			return;
-		}
-		case GRUG_ERROR_TYPE_COMPILE: {
-			grug_tests_runtime_error_handler(error->message, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, error->file.file_name);
-			return;
-		}
-		case GRUG_ERROR_TYPE_RUNTIME_STACK_OVERFLOW: {
-			grug_tests_runtime_error_handler(error->message, GRUG_ON_FN_STACK_OVERFLOW, on_fn_name, error->file.file_name);
-			return;
-		}
-		case GRUG_ERROR_TYPE_RUNTIME_TIME_LIMIT_EXCEEDED: {
-			grug_tests_runtime_error_handler(error->message, GRUG_ON_FN_TIME_LIMIT_EXCEEDED, on_fn_name, error->file.file_name);
-			return;
-		}
-		case GRUG_ERROR_TYPE_RUNTIME_GAME_FN_ERROR: {
-			grug_tests_runtime_error_handler(error->message, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, error->file.file_name);
-			return;
-		}
-		default: {
-			assert(false);
-		}
+	// TODO(bluesillybeard): actually propagate what type of error occurred
+	if(grug_error_code_matches(GRUG_ERROR_CODE_RUNTIME, error->error_type)) {
+		grug_tests_runtime_error_handler(message, GRUG_ON_FN_GAME_FN_ERROR, on_fn_name, file_name);
 	}
 }
 
