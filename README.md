@@ -15,7 +15,6 @@ Here are your options as someone compiling grug:
 
 ## Roadmap
 - keep the tests up to date
-- split grug_arena to its own library, eg. BeardArena
 - tokenizer
 - parser
     - this includes parsing the json AST, writing out the json AST, and writing the AST back out into a grug file
