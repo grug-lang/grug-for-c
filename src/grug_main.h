@@ -182,41 +182,48 @@ struct grug_mod_dir {
 };
 
 enum grug_token_type_enum {
-	GRUG_TOKEN_OPEN_PARENTHESIS,
-	GRUG_TOKEN_CLOSE_PARENTHESIS,
-	GRUG_TOKEN_OPEN_BRACE,
-	GRUG_TOKEN_CLOSE_BRACE,
-	GRUG_TOKEN_PLUS,
-	GRUG_TOKEN_MINUS,
-	GRUG_TOKEN_MULTIPLICATION,
-	GRUG_TOKEN_DIVISION,
-	GRUG_TOKEN_COMMA,
-	GRUG_TOKEN_COLON,
-	GRUG_TOKEN_NEWLINE,
-	GRUG_TOKEN_EQUALS,
-	GRUG_TOKEN_NOT_EQUALS,
-	GRUG_TOKEN_ASSIGNMENT,
-	GRUG_TOKEN_GREATER_OR_EQUAL,
-    GRUG_TOKEN_GREATER,
-    GRUG_TOKEN_LESS_OR_EQUAL,
-    GRUG_TOKEN_LESS,
-    GRUG_TOKEN_AND,
-    GRUG_TOKEN_OR,
-    GRUG_TOKEN_NOT,
-    GRUG_TOKEN_TRUE,
-    GRUG_TOKEN_FALSE,
-    GRUG_TOKEN_IF,
-    GRUG_TOKEN_ELSE,
-    GRUG_TOKEN_WHILE,
-    GRUG_TOKEN_BREAK,
-    GRUG_TOKEN_RETURN,
-    GRUG_TOKEN_CONTINUE,
-    GRUG_TOKEN_SPACE,
-    GRUG_TOKEN_INDENTATION,
-    GRUG_TOKEN_STRING,
-    GRUG_TOKEN_WORD,
-    GRUG_TOKEN_NUMBER,
-    GRUG_TOKEN_COMMENT,
+	GRUG_TOKEN_TYPE_OPEN_PARENTHESIS,
+	GRUG_TOKEN_TYPE_CLOSE_PARENTHESIS,
+	GRUG_TOKEN_TYPE_OPEN_BRACE,
+	GRUG_TOKEN_TYPE_CLOSE_BRACE,
+	GRUG_TOKEN_TYPE_OPEN_BRACKET,
+	GRUG_TOKEN_TYPE_CLOSE_BRACKET,
+	GRUG_TOKEN_TYPE_PLUS,
+	GRUG_TOKEN_TYPE_MINUS,
+	GRUG_TOKEN_TYPE_STAR,
+	GRUG_TOKEN_TYPE_FORWARD_SLASH,
+	GRUG_TOKEN_TYPE_COMMA,
+	GRUG_TOKEN_TYPE_COLON,
+	GRUG_TOKEN_TYPE_DOT,
+	GRUG_TOKEN_TYPE_NEW_LINE,
+	GRUG_TOKEN_TYPE_DOUBLE_EQUALS,
+	GRUG_TOKEN_TYPE_NOT_EQUALS,
+	GRUG_TOKEN_TYPE_EQUAL,
+	GRUG_TOKEN_TYPE_GREATER_EQUALS,
+	GRUG_TOKEN_TYPE_GREATER,
+	GRUG_TOKEN_TYPE_LESS_EQUALS,
+	GRUG_TOKEN_TYPE_LESS,
+	GRUG_TOKEN_TYPE_AND,
+	GRUG_TOKEN_TYPE_OR,
+	GRUG_TOKEN_TYPE_NOT,
+	GRUG_TOKEN_TYPE_TRUE,
+	GRUG_TOKEN_TYPE_FALSE,
+	GRUG_TOKEN_TYPE_IF,
+	GRUG_TOKEN_TYPE_ELSE,
+	GRUG_TOKEN_TYPE_WHILE,
+	GRUG_TOKEN_TYPE_BREAK,
+	GRUG_TOKEN_TYPE_RETURN,
+	GRUG_TOKEN_TYPE_CONTINUE,
+	GRUG_TOKEN_TYPE_EXPORT,
+	GRUG_TOKEN_TYPE_LOCAL,
+	GRUG_TOKEN_TYPE_SPACE,
+	GRUG_TOKEN_TYPE_INDENT,
+	GRUG_TOKEN_TYPE_STRING,
+	GRUG_TOKEN_TYPE_ENTITY,
+	GRUG_TOKEN_TYPE_RESOURCE,
+	GRUG_TOKEN_TYPE_WORD,
+	GRUG_TOKEN_TYPE_NUMBER,
+	GRUG_TOKEN_TYPE_COMMENT,
 };
 
 typedef uint32_t grug_token_type;
@@ -228,13 +235,11 @@ struct grug_arena;
 
 struct grug_token {
 	grug_token_type type;
-	/// Only defined for tokens that actually hold a string of contents.
+	/// When parsed from 'real' code this will always be set, however when generated from an AST or otherwise this may or may not be set.
+	/// Will not be null terminated, as it is simply a window view into the file contents string which is stored elsewhere
 	char const* contents;
-};
-
-struct grug_tokens {
-	struct grug_token* tokens;
-	size_t tokens_len;
+	/// Number of bytes of the contents
+	size_t contents_len;
 };
 
 // MARK: AST
@@ -639,19 +644,29 @@ static inline void grug_free_error(struct grug_error* err) {
 
 void grug_free_ast(struct grug_ast ast);
 
-size_t grug_to_tokens(char const* grug, size_t grug_len, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
-size_t ast_to_tokens(struct grug_ast ast, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
+size_t grug_tokens_to_grug(struct grug_token const* tokens, size_t num_tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
 
-size_t json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
-size_t tokens_to_grug(struct grug_tokens tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
-size_t ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+size_t grug_ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
 
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_arena* arena, struct grug_error* o_error);
-struct grug_ast json_to_ast(char const* json, size_t json_len, struct grug_arena* arena, struct grug_error* o_error);
-struct grug_ast grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena, struct grug_error* o_error);
+size_t grug_json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
 
-size_t ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
-size_t grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+size_t grug_grug_to_tokens(char const* grug, size_t grug_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
+
+size_t grug_ast_to_tokens(struct grug_ast ast, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
+
+size_t grug_json_to_tokens(char const* json, size_t json_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error);
+
+struct grug_ast grug_grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena_or_none, struct grug_error* o_error);
+
+struct grug_ast grug_tokens_to_ast(struct grug_token const* tokens, size_t num_tokens, struct grug_arena* arena_or_none, struct grug_error* o_error);
+
+struct grug_ast grug_json_to_ast(char const* json, size_t json_len, struct grug_arena* arena_or_none, struct grug_error* o_error);
+
+size_t grug_grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+
+size_t grug_tokens_to_json(struct grug_token const* tokens, size_t num_tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
+
+size_t grug_ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error);
 
 #ifdef __cplusplus
 }

@@ -113,7 +113,7 @@ void impl_call_export_fn(struct grug_state* state, struct grug_entity_id* entity
 
 bool impl_grug_to_json(struct grug_state* state, const char *input_grug_buffer, char *output_json_buffer, size_t output_buffer_len) {
 	(void)state;
-	size_t result = grug_to_json(input_grug_buffer, 0, output_json_buffer, output_buffer_len, &g_error);
+	size_t result = grug_grug_to_json(input_grug_buffer, 0, output_json_buffer, output_buffer_len, &g_error);
 	if(g_error.error_type.tag[0]) {
 		return false;
 	}
@@ -125,7 +125,7 @@ bool impl_grug_to_json(struct grug_state* state, const char *input_grug_buffer, 
 
 bool impl_json_to_grug(struct grug_state* state, const char *input_json_buffer, char *output_grug_buffer, size_t output_buffer_len) {
 	(void)state;
-	size_t result = json_to_grug(input_json_buffer, 0, output_grug_buffer, output_buffer_len, &g_error);
+	size_t result = grug_json_to_grug(input_json_buffer, 0, output_grug_buffer, output_buffer_len, &g_error);
 	if(g_error.error_type.tag[0]) {
 		return false;
 	}

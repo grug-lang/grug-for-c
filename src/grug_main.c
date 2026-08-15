@@ -442,7 +442,208 @@ void grug_free_ast(struct grug_ast ast) {
 	(void)ast;
 }
 
-size_t grug_to_tokens(char const* grug, size_t grug_len, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+static inline void write_char_to_buffer(char* out_buffer, size_t capacity, size_t* inout_index, char character) {
+	if(out_buffer) {
+		if(*inout_index < capacity) {
+			out_buffer[*inout_index] = character;
+		}
+	}
+	*inout_index += 1;
+}
+
+static inline void write_stringl_to_buffer(char* out_buffer, size_t capacity, size_t* inout_index, char const* string, size_t string_len) {
+	// TODO(bluesillybeard) this is extremely easy to optimize
+	for(size_t index = 0; index < string_len; index += 1) {
+		write_char_to_buffer(out_buffer, capacity, inout_index, string[index]);
+	}
+}
+
+static inline void write_string_to_buffer(char* out_buffer, size_t capacity, size_t* inout_index, char const* string) {
+	size_t string_len = strlen(string);
+	write_stringl_to_buffer(out_buffer, capacity,  inout_index,  string, string_len);
+}
+
+size_t grug_tokens_to_grug(struct grug_token const* tokens, size_t num_tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	// I don't quite remember why I made this return an error, but I see no reason to remove it.
+	(void)o_error;
+	if(out_string_buffer_capacity) {
+		assert(out_string_buffer);
+	}
+	if(num_tokens) {
+		assert(tokens);
+	}
+	size_t write_index = 0;
+
+	for(size_t token_index = 0; token_index < num_tokens; token_index += 1) {
+		struct grug_token tok = tokens[token_index];
+		switch (tok.type) {
+			case GRUG_TOKEN_TYPE_OPEN_PARENTHESIS: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '(');
+			}
+			case GRUG_TOKEN_TYPE_CLOSE_PARENTHESIS: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ')');
+			}
+			case GRUG_TOKEN_TYPE_OPEN_BRACE: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '{');
+			}
+			case GRUG_TOKEN_TYPE_CLOSE_BRACE: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '}');
+			}
+			case GRUG_TOKEN_TYPE_OPEN_BRACKET: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '[');
+			}
+			case GRUG_TOKEN_TYPE_CLOSE_BRACKET: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ']');
+			}
+			case GRUG_TOKEN_TYPE_PLUS: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '+');
+			}
+			case GRUG_TOKEN_TYPE_MINUS: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '-');
+			}
+			case GRUG_TOKEN_TYPE_STAR: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '*');
+			}
+			case GRUG_TOKEN_TYPE_FORWARD_SLASH: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '/');
+			}
+			case GRUG_TOKEN_TYPE_COMMA: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ',');
+			}
+			case GRUG_TOKEN_TYPE_COLON: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ':');
+			}
+			case GRUG_TOKEN_TYPE_DOT: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '.');
+			}
+			case GRUG_TOKEN_TYPE_NEW_LINE: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '\n');
+			}
+			case GRUG_TOKEN_TYPE_DOUBLE_EQUALS: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "==");
+			}
+			case GRUG_TOKEN_TYPE_NOT_EQUALS: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "!=");
+			}
+			case GRUG_TOKEN_TYPE_EQUAL: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '=');
+			}
+			case GRUG_TOKEN_TYPE_GREATER_EQUALS: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ">=");
+			}
+			case GRUG_TOKEN_TYPE_GREATER: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '>');
+			}
+			case GRUG_TOKEN_TYPE_LESS_EQUALS: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "<=");
+			}
+			case GRUG_TOKEN_TYPE_LESS: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '<');
+			}
+			case GRUG_TOKEN_TYPE_AND: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "and");
+			}
+			case GRUG_TOKEN_TYPE_OR: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "or");
+			}
+			case GRUG_TOKEN_TYPE_NOT: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "not");
+			}
+			case GRUG_TOKEN_TYPE_TRUE: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "true");
+			}
+			case GRUG_TOKEN_TYPE_FALSE: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "false");
+			}
+			case GRUG_TOKEN_TYPE_IF: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "if");
+			}
+			case GRUG_TOKEN_TYPE_ELSE: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "else");
+			}
+			case GRUG_TOKEN_TYPE_WHILE: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "while");
+			}
+			case GRUG_TOKEN_TYPE_BREAK: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "break");
+			}
+			case GRUG_TOKEN_TYPE_RETURN: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "return");
+			}
+			case GRUG_TOKEN_TYPE_CONTINUE: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "continue");
+			}
+			case GRUG_TOKEN_TYPE_EXPORT: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "export");
+			}
+			case GRUG_TOKEN_TYPE_LOCAL: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "local");
+			}
+			case GRUG_TOKEN_TYPE_SPACE: {
+				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ' ');
+			}
+			case GRUG_TOKEN_TYPE_INDENT: {
+				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "    ");
+			}
+			case GRUG_TOKEN_TYPE_STRING: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			case GRUG_TOKEN_TYPE_ENTITY: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			case GRUG_TOKEN_TYPE_RESOURCE: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			case GRUG_TOKEN_TYPE_WORD: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			case GRUG_TOKEN_TYPE_NUMBER: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			case GRUG_TOKEN_TYPE_COMMENT: {
+				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+			}
+			default: {
+				assert(false && "Invalid token type");
+			}
+		}
+	}
+	return write_index;
+}
+
+size_t grug_ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	size_t num_tokens_required = grug_ast_to_tokens(ast, NULL, 0, o_error);
+	if(o_error->error_type.tag[0]) {
+		return 0;
+	}
+	struct grug_token* tokens = GRUG_MALLOC(num_tokens_required * sizeof(struct grug_token));
+	if(!tokens) {
+		struct grug_error err = {
+			// TODO(bluesillybeard): add specific error codes for failed allocations
+			.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+			.message = "Failed to convert AST to tokens: malloc() returned null",
+		};
+		grug_assign_error(o_error, &err, NULL);
+		return 0;
+	}
+	size_t num_tokens = grug_ast_to_tokens(ast, tokens, num_tokens_required, o_error);
+	assert(num_tokens == num_tokens_required);
+	size_t chars_required = grug_tokens_to_grug(tokens, num_tokens, out_string_buffer, out_string_buffer_capacity, o_error);
+	GRUG_FREE(tokens, num_tokens_required * sizeof(struct grug_token));
+	return chars_required;
+}
+
+size_t grug_json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	struct grug_ast ast = grug_json_to_ast(json, json_len, NULL, o_error);
+	if(o_error->error_type.tag[0]) {
+		return 0;
+	}
+	size_t return_value = grug_ast_to_grug(ast, out_string_buffer, out_string_buffer_capacity, o_error);
+	grug_free_ast(ast);
+	return return_value;
+}
+
+size_t grug_grug_to_tokens(char const* grug, size_t grug_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
 	assert(false && "Not Implemented");
 	(void)grug;
 	(void)grug_len;
@@ -452,7 +653,7 @@ size_t grug_to_tokens(char const* grug, size_t grug_len, struct grug_tokens* out
 	return 0;
 }
 
-size_t ast_to_tokens(struct grug_ast ast, struct grug_tokens* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+size_t grug_ast_to_tokens(struct grug_ast ast, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
 	assert(false && "Not Implemented");
 	(void)ast;
 	(void)out_tokens;
@@ -461,79 +662,87 @@ size_t ast_to_tokens(struct grug_ast ast, struct grug_tokens* out_tokens, size_t
 	return 0;
 }
 
-size_t json_to_grug(char const* json, size_t json_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+size_t grug_json_to_tokens(char const* json, size_t json_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+	struct grug_ast ast = grug_json_to_ast(json, json_len, NULL, o_error);
+	if(o_error->error_type.tag[0]) {
+		return 0;
+	}
+	size_t return_value = grug_ast_to_tokens(ast, out_tokens, out_tokens_capacity, o_error);
+	grug_free_ast(ast);
+	return return_value;
+}
+
+struct grug_ast grug_grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena_or_none, struct grug_error* o_error) {
+	size_t num_tokens_required = grug_grug_to_tokens(grug, grug_len, NULL, 0, o_error);
+	if(o_error->error_type.tag[0]) {
+		return (struct grug_ast){0};
+	}
+	struct grug_token* tokens = GRUG_MALLOC(num_tokens_required * sizeof(struct grug_token));
+	if(!tokens) {
+		struct grug_error err = {
+			// TODO(bluesillybeard): add specific error codes for failed allocations
+			.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+			.message = "Failed to convert grug to tokens: malloc() returned null",
+		};
+		grug_assign_error(o_error, &err, NULL);
+		return (struct grug_ast){0};
+	}
+	size_t num_tokens = grug_grug_to_tokens(grug, grug_len, tokens, num_tokens_required, o_error);
+	if(o_error->error_type.tag[0]) {
+		GRUG_FREE(tokens, num_tokens_required * sizeof(struct grug_token));
+		return (struct grug_ast){0};
+	}
+	assert(num_tokens_required == num_tokens);
+
+	struct grug_ast ast = grug_tokens_to_ast(tokens, num_tokens, arena_or_none, o_error);
+	// ast keeps local copies of everything so we can free the tokens immediately
+	GRUG_FREE(tokens, num_tokens_required * sizeof(struct grug_token));
+	return ast;
+}
+
+struct grug_ast grug_tokens_to_ast(struct grug_token const* tokens, size_t num_tokens, struct grug_arena* arena_or_none, struct grug_error* o_error) {
+	assert(false && "Not Implemented");
+	(void)tokens;
+	(void)num_tokens;
+	(void)arena_or_none;
+	(void)o_error;
+	return (struct grug_ast){0};
+}
+
+struct grug_ast grug_json_to_ast(char const* json, size_t json_len, struct grug_arena* arena_or_none, struct grug_error* o_error) {
 	assert(false && "Not Implemented");
 	(void)json;
 	(void)json_len;
-	(void)out_string_buffer;
-	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
-	(void)out_string_buffer_capacity;
+	(void)arena_or_none;
 	(void)o_error;
-	return 0;
+	return (struct grug_ast){0};
 }
 
-size_t tokens_to_grug(struct grug_tokens tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)tokens;
-	(void)out_string_buffer;
-	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
-	(void)out_string_buffer_capacity;
-	(void)o_error;
-	return 0;
+size_t grug_grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	struct grug_ast ast = grug_grug_to_ast(grug, grug_len, NULL, o_error);
+	if(o_error->error_type.tag[0]) {
+		return 0;
+	}
+	size_t return_value = grug_ast_to_json(ast, out_string_buffer, out_string_buffer_capacity, o_error);
+	grug_free_ast(ast);
+	return return_value;
+	
 }
 
-size_t ast_to_grug(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+size_t grug_tokens_to_json(struct grug_token const* tokens, size_t num_tokens, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
+	struct grug_ast ast = grug_tokens_to_ast(tokens, num_tokens, NULL, o_error);
+	if(o_error->error_type.tag[0]) {
+		return 0;
+	}
+	size_t return_value = grug_ast_to_json(ast, out_string_buffer, out_string_buffer_capacity, o_error);
+	grug_free_ast(ast);
+	return return_value;
+}
+
+size_t grug_ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) { // NOLINT: what part of casting to void do you not understand clang-tidy?
 	assert(false && "Not Implemented");
 	(void)ast;
 	(void)out_string_buffer;
-	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
-	(void)out_string_buffer_capacity;
-	(void)o_error;
-	return 0;
-}
-
-struct grug_ast tokens_to_ast(struct grug_tokens tokens, struct grug_arena* arena, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)tokens;
-	(void)arena;
-	(void)o_error;
-	return (struct grug_ast){0};
-}
-
-struct grug_ast json_to_ast(char const* json, size_t json_len, struct grug_arena* arena, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)json;
-	(void)json_len;
-	(void)arena;
-	(void)o_error;
-	return (struct grug_ast){0};
-}
-
-struct grug_ast grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)grug;
-	(void)grug_len;
-	(void)arena;
-	(void)o_error;
-	return (struct grug_ast){0};
-}
-
-size_t ast_to_json(struct grug_ast ast, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)ast;
-	(void)out_string_buffer;
-	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
-	(void)out_string_buffer_capacity;
-	(void)o_error;
-	return 0;
-}
-
-size_t grug_to_json(char const* grug, size_t grug_len, char* out_string_buffer, size_t out_string_buffer_capacity, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)grug;
-	(void)grug_len;
-	(void)out_string_buffer;
-	out_string_buffer[0] = 0; // To silence a clang-tidy complaint
 	(void)out_string_buffer_capacity;
 	(void)o_error;
 	return 0;
