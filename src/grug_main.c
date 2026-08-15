@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "grug_main.h"
-#include "grug_arena.h"
+#include "beard_arena.h"
 #include "grug_options.h"
 
 // MARK: utilities
@@ -368,19 +368,19 @@ void grug_assign_error(struct grug_error* err, struct grug_error const* new_err,
 }
 
 struct grug_arena* grug_arena_new(void) {
-	struct grug_internal_arena* arena = GRUG_MALLOC(sizeof(struct grug_internal_arena));
+	struct beard_arena* arena = GRUG_MALLOC(sizeof(struct beard_arena));
 	if(!arena) {
 		return NULL;
 	}
 
-	grug_internal_arena_init(arena, 0, 8192);
+	beard_arena_init(arena, 0, 8192);
 
 	return (struct grug_arena*)arena;
 }
 
 void* grug_arena_alloc(struct grug_arena* arena, size_t size) {
 	if(arena) {
-		return grug_internal_arena_allocate((struct grug_internal_arena*)arena, size);
+		return beard_arena_allocate((struct beard_arena*)arena, size);
 	}
 	return NULL;
 }
@@ -406,34 +406,34 @@ char* grug_arena_copy_string(struct grug_arena* arena, char const* data) {
 
 void* grug_arena_alloc_aligned(struct grug_arena* arena, size_t size, size_t align) {
 	if(arena) {
-		return grug_internal_arena_allocate_aligned((struct grug_internal_arena*)arena, size, align);
+		return beard_arena_allocate_aligned((struct beard_arena*)arena, size, align);
 	}
 	return NULL;
 }
 
 void grug_arena_free(struct grug_arena* arena, void* ptr, size_t size) {
 	if(arena) {
-		grug_internal_arena_free((struct grug_internal_arena*)arena, ptr, size);
+		beard_arena_free((struct beard_arena*)arena, ptr, size);
 	}
 }
 
 void* grug_arena_realloc(struct grug_arena* arena, void* ptr, size_t old_size, size_t new_size) {
 	if(arena) {
-		return grug_internal_arena_reallocate((struct grug_internal_arena*)arena, ptr, old_size, new_size);
+		return beard_arena_reallocate((struct beard_arena*)arena, ptr, old_size, new_size);
 	}
 	return NULL;
 }
 
 void grug_arena_clear(struct grug_arena* arena, size_t reserve_bytes) {
 	if(arena) {
-		grug_internal_arena_reset((struct grug_internal_arena*)arena, reserve_bytes);
+		beard_arena_reset((struct beard_arena*)arena, reserve_bytes);
 	}
 }
 
 void grug_arena_deinit(struct grug_arena* arena) {
 	if(arena) {
-		grug_internal_arena_deinit((struct grug_internal_arena*)arena);
-		GRUG_FREE(arena, sizeof(struct grug_internal_arena));
+		beard_arena_deinit((struct beard_arena*)arena);
+		GRUG_FREE(arena, sizeof(struct beard_arena));
 	}
 }
 

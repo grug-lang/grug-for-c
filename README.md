@@ -15,8 +15,6 @@ Here are your options as someone compiling grug:
 
 ## Roadmap
 - keep the tests up to date
-- rethink the API
-    - pass grug IR to backend as well as AST
 - split grug_arena to its own library, eg. BeardArena
 - tokenizer
 - parser
@@ -59,4 +57,3 @@ Here are your options as someone compiling grug:
     - how to import into cmake
     - how to import into makefile
     - how to import into zig
-
