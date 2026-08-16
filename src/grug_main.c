@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -721,11 +722,11 @@ size_t grug_json_to_grug(char const* json, size_t json_len, char* out_string_buf
 
 // TODO(bluesillybeard): this was supposed to be better but perhaps this is worse than the else-if chain or w/e else
 struct grug_token_info {
-	grug_token_type type;
 	// May be NULL
 	char const* expected;
 	// If this is a string, this is the character that indicates the end of the string
 	char const* string_end;
+	grug_token_type type;
 	// If set, expected is instead treated as the start of a string (", r", e", etc)
 	bool is_string;
 	// whether this token requires proceeding non-ascii or whitespace character
@@ -983,6 +984,9 @@ size_t grug_json_to_tokens(char const* json, size_t json_len, struct grug_token*
 struct grug_ast grug_grug_to_ast(char const* grug, size_t grug_len, struct grug_arena* arena_or_none, struct grug_error* o_error) {
 	size_t num_tokens_required = grug_grug_to_tokens(grug, grug_len, NULL, 0, o_error);
 	if(o_error->error_type.tag[0]) {
+		return (struct grug_ast){0};
+	}
+	if(!num_tokens_required) {
 		return (struct grug_ast){0};
 	}
 	struct grug_token* tokens = GRUG_MALLOC(num_tokens_required * sizeof(struct grug_token));

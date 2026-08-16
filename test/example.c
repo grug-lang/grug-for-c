@@ -17,7 +17,7 @@ union grug_value game_fn_print_string(struct grug_state* gst, void* fn_dat, cons
     return (union grug_value){0};
 }
 
-bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const* name) {
+bool find_file(struct grug_mod_dir const* dir, grug_file_id* out_id, char const* name) { // NOLINT(misc-no-recursion): recursion here is fine
     for(size_t file_index = 0; file_index < dir->files_size; ++file_index) {
         struct grug_file* file = &dir->files[file_index];
         // while looking for file is not the right place to report errors, but they need to be reported somewhere and doing it here works.

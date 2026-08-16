@@ -40,7 +40,6 @@
 #undef GRUG_TYPE_ID
 #undef GRUG_TYPE_ON_FN_ID
 
-#include <alloca.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>

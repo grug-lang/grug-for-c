@@ -1,5 +1,14 @@
 WarningsAsErrors: True
 # this config follows the "enable everything and remove what we do not need" philosophy of linting.
+
+# Notes about removed options:
+# clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling: flags memcpy as unsafe which is super annoying because we do not have access to memcpy_s (we are on C99, not C11) ,
+# readability-function-cognitive-complexity: tends to flag functions that are easy to understand while leaving abominations unmarked.
+# performance-no-int-to-ptr: we do our own profiling and will make our own judgement on whether a cast is actually detrimental to optimization
+# llvm-header-guard: clang does not realize pragma-once counts as a header guard TODO(bluesillybeard) is there an issue to track this when it gets fixed?
+# android-cloexec-fopen: recommends using flag `e` instead of `rb` but `e` is not part of the C standard, nor do we need to worry about `exec` being called out of nowhere.
+# bugprone-branch-clone: keeps reporting false positives. We like this one but the fact that it has false positives makes it unusable.
+# misc-unused-parameters This one keeps flagging false positives. Thankfully the compiler has us covered for this one anyways.
 Checks: '*,
     -altera*,
     -bugprone-easily-swappable-parameters,
@@ -9,21 +18,14 @@ Checks: '*,
     -llvmlibc-restrict-system-libc-headers,
     -llvm-else-after-return,
     -misc-confusable-identifiers,
-# This flags memcpy as unsafe which is super annoying because we do not have access to memcpy_s (we are on C99, not C11) ,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
-# we know how to read, thanks ,
     -readability-function-cognitive-complexity,
-# We do our own profiling thanks ,
     -performance-no-int-to-ptr,
-# clang does not realize pragma-once counts as a header guard TODO(bluesillybeard) is there an issue to track this when it gets fixed? ,
     -llvm-header-guard,
-# This recommends using flag `e` instead of `rb` but `e` is not part of the C standard, nor do we need to worry about `exec` being called out of nowhere. ,
     -android-cloexec-fopen,
     -cppcoreguidelines-macro-to-enum,modernize-macro-to-enum,
     -modernize-macro-to-enum,
-# This keeps reporting false positives. We like this one but the fact that it has false positives makes it unusable. ,
     -bugprone-branch-clone,
-# We might need to switch away from clang-tidy because Holy Crap is it buggy as heck. This one keeps flagging false positives. Thankfully the compiler has us covered for this one anyways. ,
     -misc-unused-parameters,
     '
 CheckOptions:
