@@ -29,6 +29,7 @@ void* grug_realloc(void* ptr, size_t old_len, size_t new_len) {
 	return new_ptr;
 }
 
+/// Returns a null terminated string of the entire contents of a file, or null if the file fails to open.
 static char* read_all_contents(char const* file_path, size_t* out_len) {
 	struct block {
 		char data[1024];
@@ -82,6 +83,7 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 	if(out_len) {
 		*out_len = total_size;
 	}
+	data[total_size] = 0;
 	return data;
 }
 
@@ -90,6 +92,10 @@ static char* read_all_contents(char const* file_path, size_t* out_len) {
 struct grug_state {
 	struct grug_arena* update_arena;
 	struct grug_error last_error;
+	char const* mod_api_json_source;
+	struct grug_logger logger;
+	struct grug_backend backend;
+	bool fast_mode;
 };
 
 static void write_error_plain(struct grug_error_code error_code, char const* message, char const* custom_message, struct grug_file_location file, struct grug_callstack callstack, struct grug_arena* arena_or_none, struct grug_error* out_error) {
@@ -157,11 +163,40 @@ struct grug_state* grug_init(struct grug_init_settings settings, struct grug_err
 		GRUG_FREE(gst, sizeof(struct grug_state));
 		return NULL;
 	}
+	char* mod_api_json_source = NULL;
+	if(!settings.mod_api_json_source) {
+		if(!settings.mod_api_json_path) {
+			write_error_basic(NULL, GRUG_ERROR_CODE_INIT, "failed to create state: a mod_api.json is required", NULL, out_error);
+			GRUG_FREE(gst, sizeof(struct grug_state));
+			return NULL;
+		}
+		size_t file_len = 0;
+		mod_api_json_source = read_all_contents(settings.mod_api_json_path, &file_len);
+		if(!mod_api_json_source) {
+			write_error_basic(NULL, GRUG_ERROR_CODE_INIT, "failed to create state: could not find the mod_api.json file", NULL, out_error);
+			GRUG_FREE(gst, sizeof(struct grug_state));
+			return NULL;
+		}
+	} else {
+		size_t file_len = strlen(settings.mod_api_json_source);
+		mod_api_json_source = GRUG_MALLOC(file_len + 1);
+		if(!mod_api_json_source) {
+			write_error_basic(NULL, GRUG_ERROR_CODE_INIT, "failed to create state: malloc() returned null", NULL, out_error);
+			GRUG_FREE(gst, sizeof(struct grug_state));
+			return NULL;
+		}
+		memcpy(mod_api_json_source, settings.mod_api_json_source, file_len);
+		mod_api_json_source[file_len] = 0;
+	}
 	// Not sure why but GCC doesn't like allowing the initializer for the empty last error to be inside the initializer for the grug_state.
-	struct grug_error null_error = {0};
+	struct grug_error last_error = {0};
 	*gst = (struct grug_state) {
-		.last_error = null_error,
+		.last_error = last_error,
 		.update_arena = update_arena,
+		.mod_api_json_source = mod_api_json_source,
+		.logger = settings.logger,
+		.backend = settings.backend,
+		.fast_mode = false,
 	};
 	return gst;
 }
@@ -177,7 +212,7 @@ struct grug_callstack grug_get_callstack(struct grug_state* gst) {
 }
 
 bool grug_register_game_fn(struct grug_state* gst, char const* game_fn_name, void* fn_data, game_fn fn_ptr) {
-	assert(false && "Not Implemented");
+	// assert(false && "Not Implemented");
 	(void)gst;
 	(void)game_fn_name;
 	(void)fn_data;
@@ -272,9 +307,7 @@ void grug_swap_backend(struct grug_state* gst, struct grug_backend backend) {
 }
 
 void grug_set_fast_mode(struct grug_state* gst, bool fast) {
-	assert(false && "Not Implemented");
-	(void)gst;
-	(void)fast;
+	gst->fast_mode = fast;
 }
 
 bool grug_call_on_function_raw(struct grug_state* gst, grug_entity_id entity, grug_on_fn_id on_fn_id, union grug_value* args) {
