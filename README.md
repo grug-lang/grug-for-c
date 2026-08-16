@@ -16,6 +16,10 @@ Here are your options as someone compiling grug:
 ## Roadmap
 - keep the tests up to date
 - tokenizer
+    - figure out if/how to remove the 'space' token. grug is extremely strict on how whitespace is handled, ideally the 'space' token would be eliminated entirely and any incorrect whitespace results in an error in the tokenizer rather than at the parser.
+    - figure out if/how to remove the 'indent' token - same reasons as with the space token.
+    - To support the use of tokenizing then de-tokenizing grug to fix formatting, adjust the tokenizer to make formatting errors optional from the user POV
+        - Perhaps we don't want to support this use-case however.
 - parser
     - this includes parsing the json AST, writing out the json AST, and writing the AST back out into a grug file
     - This is when some tests may begin to pass. Get as many tests to pass as possible with only the tokenizer+parser

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -479,129 +480,171 @@ size_t grug_tokens_to_grug(struct grug_token const* tokens, size_t num_tokens, c
 		switch (tok.type) {
 			case GRUG_TOKEN_TYPE_OPEN_PARENTHESIS: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '(');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_CLOSE_PARENTHESIS: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ')');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_OPEN_BRACE: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '{');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_CLOSE_BRACE: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '}');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_OPEN_BRACKET: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '[');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_CLOSE_BRACKET: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ']');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_PLUS: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '+');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_MINUS: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '-');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_STAR: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '*');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_FORWARD_SLASH: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '/');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_COMMA: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ',');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_COLON: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ':');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_DOT: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '.');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_NEW_LINE: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '\n');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_DOUBLE_EQUALS: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "==");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_NOT_EQUALS: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "!=");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_EQUAL: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '=');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_GREATER_EQUALS: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ">=");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_GREATER: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '>');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_LESS_EQUALS: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "<=");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_LESS: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, '<');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_AND: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "and");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_OR: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "or");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_NOT: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "not");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_TRUE: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "true");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_FALSE: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "false");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_IF: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "if");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_ELSE: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "else");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_WHILE: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "while");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_BREAK: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "break");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_RETURN: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "return");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_CONTINUE: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "continue");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_EXPORT: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "export");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_LOCAL: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "local");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_SPACE: {
 				write_char_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, ' ');
+				break;
 			}
 			case GRUG_TOKEN_TYPE_INDENT: {
 				write_string_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, "    ");
+				break;
 			}
 			case GRUG_TOKEN_TYPE_STRING: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			case GRUG_TOKEN_TYPE_ENTITY: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			case GRUG_TOKEN_TYPE_RESOURCE: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			case GRUG_TOKEN_TYPE_WORD: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			case GRUG_TOKEN_TYPE_NUMBER: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			case GRUG_TOKEN_TYPE_COMMENT: {
 				write_stringl_to_buffer(out_string_buffer, out_string_buffer_capacity, &write_index, tok.contents, tok.contents_len);
+				break;
 			}
 			default: {
 				assert(false && "Invalid token type");
@@ -643,14 +686,246 @@ size_t grug_json_to_grug(char const* json, size_t json_len, char* out_string_buf
 	return return_value;
 }
 
-size_t grug_grug_to_tokens(char const* grug, size_t grug_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
-	assert(false && "Not Implemented");
-	(void)grug;
-	(void)grug_len;
-	(void)out_tokens;
-	(void)out_tokens_capacity;
-	(void)o_error;
+// TODO(bluesillybeard): this was supposed to be better but perhaps this is worse than the else-if chain or w/e else
+struct grug_token_info {
+	grug_token_type type;
+	// May be NULL
+	char const* expected;
+	// If this is a string, this is the character that indicates the end of the string
+	char const* string_end;
+	// If set, expected is instead treated as the start of a string (", r", e", etc)
+	bool is_string;
+	// whether this token requires proceeding non-ascii or whitespace character
+	bool proceed_with_special;
+	// whether this token expects to only show up at the start of a new line
+	bool expected_at_line_start;
+	
+};
+
+/// These are in the order they are searched for
+/// If you can figure out some way to make this not suck but still pass GCCs -pedantic, be my guest.
+/// However it will likely be rewritten anyways.
+static struct grug_token_info token_infos[GRUG_TOKEN_TYPE_NUM] = {0}; //NOLINT: can't be const because C
+static bool token_infos_initialized = false;//NOLINT: can't be const because C
+
+static void init_token_infos(void) {
+	if(!token_infos_initialized) {
+		token_infos_initialized = true;
+		struct grug_token_info token_infos_local[GRUG_TOKEN_TYPE_NUM] = {
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_OPEN_PARENTHESIS, .expected = "(", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_CLOSE_PARENTHESIS, .expected = ")", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_OPEN_BRACE, .expected = "{", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_CLOSE_BRACE, .expected = "}", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_OPEN_BRACKET, .expected = "[", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_CLOSE_BRACKET, .expected = "]", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_PLUS, .expected = "+", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_MINUS, .expected = "-", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_STAR, .expected = "*", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_FORWARD_SLASH, .expected = "/", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_COMMA, .expected = ",", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_COLON, .expected = ":", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_DOT, .expected = ".", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_NEW_LINE, .expected = NULL, .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_DOUBLE_EQUALS, .expected = "==", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_NOT_EQUALS, .expected = "!=", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_EQUAL, .expected = "=", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_GREATER_EQUALS, .expected = ">=", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_GREATER, .expected = ">", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_LESS_EQUALS, .expected = "<=", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_LESS, .expected = "<", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_AND, .expected = "and", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_OR, .expected = "or", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_NOT, .expected = "not", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_TRUE, .expected = "true", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_FALSE, .expected = "false", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_IF, .expected = "if", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_ELSE, .expected = "else", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_WHILE, .expected = "while", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_BREAK, .expected = "break", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_RETURN, .expected = "return", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_CONTINUE, .expected = "continue", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_EXPORT, .expected = "export", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = true},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_LOCAL, .expected = "local", .string_end = NULL, .is_string = false, .proceed_with_special = true, .expected_at_line_start = true},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_INDENT, .expected = "    ", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = true},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_SPACE, .expected = " ", .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_STRING, .expected = "\"", .string_end = "\"", .is_string = true, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_ENTITY, .expected = "e\"", .string_end = "\"", .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_RESOURCE, .expected = "r\"", .string_end = "\"", .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_COMMENT, .expected = "#", .string_end = "\n", .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_WORD, .expected = NULL, .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_NUMBER, .expected = NULL, .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+			(struct grug_token_info) {.type = GRUG_TOKEN_TYPE_NONE, .expected = NULL, .string_end = NULL, .is_string = false, .proceed_with_special = false, .expected_at_line_start = false},
+		};
+		memcpy(token_infos, token_infos_local, sizeof(token_infos));
+	}
+}
+
+static size_t check_token(char const* grug_src, size_t grug_len, uint32_t token_index, bool line_start, struct grug_error* o_error) {
+	struct grug_token_info info = token_infos[token_index];
+	if(info.expected) {
+		size_t expected_len = strlen(info.expected);
+		if(grug_len < expected_len) {
+			return 0;
+		}
+		if(info.is_string) {
+			size_t expected_end_len = strlen(info.string_end);
+			size_t char_index = expected_len;
+			size_t max_iterations = 100000000;
+			while(max_iterations--) {
+				if(strncmp(grug_src+char_index, info.string_end, expected_len) == 0) {
+					return char_index+1;
+				}
+				if(grug_src[char_index] == '\n') {
+					struct grug_error err = {
+						.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+						// Needs to be brought in line with what the test suite expects
+						.message = "Expected end quote but found end of line",
+					};
+					grug_assign_error(o_error, &err, NULL);
+					return 0;
+				}
+				char_index += 1;
+				if(char_index+expected_end_len >= grug_len) {
+					struct grug_error err = {
+						.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+						// Needs to be brought in line with what the test suite expects
+						.message = "Expected end quote but found end of file",
+					};
+					grug_assign_error(o_error, &err, NULL);
+					return 0;
+				}
+			}
+			assert(false);
+		}
+		if(strncmp(grug_src, info.expected, expected_len) == 0) {
+			if(info.expected_at_line_start && !line_start) {
+				struct grug_error err = {
+					.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+					// Needs to be brought in line with what the test suite expects
+					.message = "Expected token to only appear on a new line",
+				};
+				grug_assign_error(o_error, &err, NULL);
+				return 0;
+			}
+			if(info.proceed_with_special) {
+				if(grug_len == expected_len) {
+					struct grug_error err = {
+						.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+						// Needs to be brought in line with what the test suite expects
+						.message = "Expected token to not appear on the end of a file",
+					};
+					grug_assign_error(o_error, &err, NULL);
+					return 0;
+				}
+				assert(grug_len > expected_len);
+				if(isascii(grug_src[expected_len+1]) || isalnum(grug_src[expected_len+1])) {
+					// means this is probably one of the special cases
+					return 0;
+				}
+			}
+			return expected_len;
+		}
+		return 0;
+	}
 	return 0;
+}
+
+static struct grug_token pull_token(char const* grug_src, size_t grug_len, bool line_start, struct grug_error* o_error) {
+	for(uint32_t check_me = 0; check_me < GRUG_TOKEN_TYPE_NUM; check_me += 1) {
+		size_t token_size = check_token(grug_src, grug_len, check_me, line_start, o_error);
+		if(o_error->error_type.tag[0]) {
+			return (struct grug_token) {0};
+		}
+		if(token_size) {
+			return (struct grug_token) {
+				.contents = grug_src,
+				.contents_len = token_size,
+				.type = token_infos[check_me].type,
+			};
+		}
+	}
+	// None of them matched, time to handle the special-cases:
+	// GRUG_TOKEN_TYPE_WORD
+	// GRUG_TOKEN_TYPE_NUMBER
+	if(isascii(grug_src[0])) {
+		size_t max_iterations = 100000000;
+		size_t read_index = 0;
+		while(max_iterations--) {
+			if(read_index > grug_len) {
+				struct grug_error err = {
+					.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+					// Needs to be brought in line with what the test suite expects
+					.message = "Im not really sure what to write here yet",
+				};
+				grug_assign_error(o_error, &err, NULL);
+				return (struct grug_token) {0};
+			}
+			if(!isalnum(grug_src[read_index])) {
+				return (struct grug_token) {
+					.contents = grug_src,
+					.contents_len = read_index,
+					.type = GRUG_TOKEN_TYPE_WORD,
+				};
+			}
+			read_index += 1;
+		}
+		assert(false);
+	} else if (isalnum(grug_src[0])) {
+		size_t max_iterations = 100000000;
+		size_t read_index = 0;
+		while(max_iterations--) {
+			if(read_index > grug_len) {
+				struct grug_error err = {
+					.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+					// Needs to be brought in line with what the test suite expects
+					.message = "Im not really sure what to write here yet",
+				};
+				grug_assign_error(o_error, &err, NULL);
+				return (struct grug_token) {0};
+			}
+			if(!isalnum(grug_src[read_index]) || isascii(grug_src[read_index])) {
+				return (struct grug_token) {
+					.contents = grug_src,
+					.contents_len = read_index,
+					.type = GRUG_TOKEN_TYPE_WORD,
+				};
+			}
+			read_index += 1;
+		}
+		assert(false);
+	} else {
+		struct grug_error err = {
+			.error_type = GRUG_ERROR_CODE_COMPILE_TOKENIZER,
+			// Needs to be brought in line with what the test suite expects
+			.message = "Im not really sure what to write here yet",
+		};
+		grug_assign_error(o_error, &err, NULL);
+		return (struct grug_token) {0};
+	}
+
+}
+
+size_t grug_grug_to_tokens(char const* grug, size_t grug_len, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {
+	init_token_infos();
+	size_t read_index = 0;
+	size_t token_index = 0;
+	bool new_line = true;
+	while(true) {
+		assert(read_index <= grug_len);
+		struct grug_token tok = pull_token(grug+read_index, grug_len-read_index, new_line, o_error);
+		if(o_error->error_type.tag[0]) {
+			return 0;
+		}
+		if(tok.type == GRUG_TOKEN_TYPE_NONE) {
+			return token_index;
+		}
+		if(out_tokens && out_tokens_capacity >= token_index) {
+			out_tokens[token_index] = tok;
+		}
+		token_index += 1;
+		new_line = tok.type == GRUG_TOKEN_TYPE_NEW_LINE;
+		
+	}
 }
 
 size_t grug_ast_to_tokens(struct grug_ast ast, struct grug_token* out_tokens, size_t out_tokens_capacity, struct grug_error* o_error) {

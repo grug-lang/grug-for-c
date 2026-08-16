@@ -182,6 +182,7 @@ struct grug_mod_dir {
 };
 
 enum grug_token_type_enum {
+	GRUG_TOKEN_TYPE_NONE = 0,
 	GRUG_TOKEN_TYPE_OPEN_PARENTHESIS,
 	GRUG_TOKEN_TYPE_CLOSE_PARENTHESIS,
 	GRUG_TOKEN_TYPE_OPEN_BRACE,
@@ -224,6 +225,7 @@ enum grug_token_type_enum {
 	GRUG_TOKEN_TYPE_WORD,
 	GRUG_TOKEN_TYPE_NUMBER,
 	GRUG_TOKEN_TYPE_COMMENT,
+	GRUG_TOKEN_TYPE_NUM,
 };
 
 typedef uint32_t grug_token_type;
